@@ -38,6 +38,9 @@ export const ChatInterface: React.FC = () => {
     const handleSendMessage = useCallback(async (userMessage: string) => {
         if (!userMessage.trim()) return;
 
+        // Load current settings
+        const currentSettings = getSettings();
+
         // Add user message
         const newUserMessage: Message = { role: 'user', content: userMessage };
         setMessages(prev => [...prev, newUserMessage]);
@@ -46,10 +49,10 @@ export const ChatInterface: React.FC = () => {
         try {
             // Get AI response
             const response = await generateChatResponse([
-                { role: 'system', content: settings.systemPrompt },
+                { role: 'system', content: currentSettings.systemPrompt },
                 ...messages,
                 newUserMessage
-            ]);
+            ], currentSettings.model);
 
             // Add AI message
             const newAIMessage: Message = { role: 'assistant', content: response };
@@ -63,7 +66,11 @@ export const ChatInterface: React.FC = () => {
                 id: Date.now().toString(),
                 request: userMessage,
                 response: response,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                model: currentSettings.model,
+                systemPrompt: currentSettings.systemPrompt,
+                username: currentSettings.username,
+                relatedMessageIds: messages.map(msg => msg.id)
             };
             saveChatRecord(chatRecord);
         } catch (error) {
@@ -78,7 +85,7 @@ export const ChatInterface: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [messages, settings]);
+    }, [messages]);
 
     const handleDeleteClick = (id: string) => {
         setDeleteRecordId(id);
@@ -229,7 +236,7 @@ export const ChatInterface: React.FC = () => {
             )}
 
             {/* Settings Form */}
-            {showSettingsForm && <SettingsForm onClose={closeSettingsForm} onSave={setSettings} />}
+            {showSettingsForm && <SettingsForm onClose={() => setShowSettingsForm(false)} onSave={closeSettingsForm} />}
 
             {/* Clear All Button */}
             <button

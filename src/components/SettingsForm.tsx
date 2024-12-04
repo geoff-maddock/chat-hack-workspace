@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { getSettings, saveSettings, Settings } from '../utils/settings';
 
 interface SettingsFormProps {
     onClose: () => void;
+    onSave: (settings: Settings) => void;
 }
 
 const modelOptions = [
@@ -19,10 +20,10 @@ const modelOptions = [
     'gpt-4o-mini'
 ];
 
-export const SettingsForm: React.FC<SettingsFormProps> = ({ onClose }) => {
+export const SettingsForm: React.FC<SettingsFormProps> = ({ onClose, onSave }) => {
     const [settings, setSettings] = useState<Settings>(getSettings());
 
-    const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setSettings(prev => ({ ...prev, [name]: value }));
     };
@@ -30,7 +31,12 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({ onClose }) => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         saveSettings(settings);
+        onSave(settings);
         onClose();
+    };
+
+    const handleReset = () => {
+        setSettings(getSettings());
     };
 
     return (
@@ -63,20 +69,39 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({ onClose }) => {
                             className="w-full p-2 border rounded"
                         />
                     </div>
-                    <div className="flex justify-end space-x-2">
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2">Username</label>
+                        <input
+                            type="text"
+                            name="username"
+                            value={settings.username}
+                            onChange={handleChange}
+                            className="w-full p-2 border rounded"
+                        />
+                    </div>
+                    <div className="flex justify-between items-center">
                         <button
                             type="button"
                             className="bg-gray-300 px-4 py-2 rounded"
-                            onClick={onClose}
+                            onClick={handleReset}
                         >
-                            Cancel
+                            Reset
                         </button>
-                        <button
-                            type="submit"
-                            className="bg-blue-500 text-white px-4 py-2 rounded"
-                        >
-                            Save
-                        </button>
+                        <div className="flex space-x-2">
+                            <button
+                                type="button"
+                                className="bg-gray-300 px-4 py-2 rounded"
+                                onClick={onClose}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="bg-blue-500 text-white px-4 py-2 rounded"
+                            >
+                                Save
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>

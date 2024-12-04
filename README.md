@@ -42,3 +42,7 @@ This app is a workspace application for developers to improve their productivity
         - Individual - Specific Items
   - [] Allow the goal sets to be referenced in the chat for alignment
   - [] Add action to create a list of tasks to align with a goal
+
+  ### Questions & Bugs
+  - How to identify the user? Currently no auth.  Azure Token?
+  - Sync this data to a database so that it can be accessed from multiple devices.

@@ -5,6 +5,10 @@ export interface ChatRecord {
     request: string;
     response: string;
     timestamp: string;
+    model: string;
+    systemPrompt: string;
+    username: string;
+    relatedMessageIds: string[];
 }
 
 const STORAGE_KEY = 'chat_records';
