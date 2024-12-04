@@ -4,6 +4,7 @@ export interface Settings {
     model: string;
     systemPrompt: string;
     username: string;
+    conversationId: string | null;
 }
 
 const SETTINGS_KEY = 'chat_settings';
@@ -17,7 +18,8 @@ You are able to respond with markdown formatted replies to user messages.
 Files may be attached to the user's messages, in which case they will be converted into plain text for you to analyze.
 
 If you have sent a message with a Markdown formatted image in it, go ahead and take credit for generating it, as another AI model was brought in to fulfill that request. Feel free to use that image's description to describe the image if relevant.`,
-    username: 'system'
+    username: 'system',
+    conversationId: null
 };
 
 export function saveSettings(settings: Settings) {

@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { SettingsForm } from './SettingsForm';
 import { generateChatResponse, ChatMessage as Message } from '../utils/openaiClient';
-import { saveChatRecord, getChatRecords, deleteChatRecord, clearChatRecords, ChatRecord } from '../utils/localStorage';
+import { saveChatRecord, getChatRecords, deleteChatRecord, clearChatRecords, ChatRecord, saveChatConversation, getChatConversations, ChatConversation } from '../utils/localStorage';
 import { getSettings, saveSettings, Settings } from '../utils/settings';
 
 export const ChatInterface: React.FC = () => {
@@ -16,7 +17,7 @@ export const ChatInterface: React.FC = () => {
     const [settings, setSettings] = useState<Settings>(getSettings());
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // Load chat records from local storage on initialization
+    // Load chat records and conversations from local storage on initialization
     useEffect(() => {
         const records = getChatRecords();
         const loadedMessages: Message[] = records.flatMap(record => [
@@ -24,6 +25,22 @@ export const ChatInterface: React.FC = () => {
             { role: 'assistant', content: record.response }
         ]);
         setMessages(loadedMessages);
+
+        const conversations = getChatConversations();
+        if (conversations.length > 0) {
+            const lastConversation = conversations[conversations.length - 1];
+            setSettings(prev => ({ ...prev, conversationId: lastConversation.id }));
+        } else {
+            const newConversation: ChatConversation = {
+                id: uuidv4().toString(),
+                title: 'New Conversation',
+                created_at: new Date().toISOString(),
+                username: settings.username
+            };
+            saveChatConversation(newConversation);
+            setSettings(prev => ({ ...prev, conversationId: newConversation.id }));
+            saveSettings({ ...settings, conversationId: newConversation.id });
+        }
     }, []);
 
     // Auto-scroll to bottom when new messages arrive
@@ -63,14 +80,14 @@ export const ChatInterface: React.FC = () => {
 
             // Save chat record to local storage
             const chatRecord: ChatRecord = {
-                id: Date.now().toString(),
+                id: uuidv4().toString(),
                 request: userMessage,
                 response: response,
                 timestamp: new Date().toISOString(),
                 model: currentSettings.model,
                 systemPrompt: currentSettings.systemPrompt,
                 username: currentSettings.username,
-                relatedMessageIds: messages.map(msg => msg.id)
+                conversationId: currentSettings.conversationId
             };
             saveChatRecord(chatRecord);
         } catch (error) {
@@ -86,6 +103,18 @@ export const ChatInterface: React.FC = () => {
             setIsLoading(false);
         }
     }, [messages]);
+
+    const handleCreateConversation = (title: string) => {
+        const newConversation: ChatConversation = {
+            id: uuidv4().toString(),
+            title,
+            created_at: new Date().toISOString(),
+            username: settings.username
+        };
+        saveChatConversation(newConversation);
+        setSettings(prev => ({ ...prev, conversationId: newConversation.id }));
+        saveSettings({ ...settings, conversationId: newConversation.id });
+    };
 
     const handleDeleteClick = (id: string) => {
         setDeleteRecordId(id);
