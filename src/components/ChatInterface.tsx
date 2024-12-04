@@ -238,6 +238,7 @@ export const ChatInterface: React.FC = () => {
                     <button
                         className="p-2 bg-gray-500 text-white rounded-full shadow-lg"
                         onClick={handleSettingsClick}
+                        title="Open Settings"
                     >
                         ⚙️
                     </button>
@@ -294,8 +295,9 @@ export const ChatInterface: React.FC = () => {
                     <button
                         className="p-2 bg-green-500 text-white rounded-full shadow-lg"
                         onClick={handleNewConversationClick}
+                        title="New Conversation"
                     >
-                        +
+                        ➕
                     </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -392,6 +394,7 @@ export const ChatInterface: React.FC = () => {
             <button
                 className="fixed bottom-4 right-4 p-4 bg-red-500 text-white rounded-full shadow-lg"
                 onClick={handleClearClick}
+                title="Clear All Chat Records"
             >
                 🗑️
             </button>
