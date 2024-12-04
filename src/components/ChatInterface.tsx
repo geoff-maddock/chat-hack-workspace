@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { SettingsForm } from './SettingsForm';
+import { EditConversationForm } from './EditConversationForm';
+import { NewConversationForm } from './NewConversationForm';
 import { generateChatResponse, ChatMessage as Message } from '../utils/openaiClient';
 import { saveChatRecord, getChatRecords, deleteChatRecord, clearChatRecords, ChatRecord, saveChatConversation, getChatConversations, ChatConversation } from '../utils/localStorage';
 import { getSettings, saveSettings, Settings } from '../utils/settings';
@@ -14,7 +16,11 @@ export const ChatInterface: React.FC = () => {
     const [deleteRecordId, setDeleteRecordId] = useState<string | null>(null);
     const [showClearPopup, setShowClearPopup] = useState(false);
     const [showSettingsForm, setShowSettingsForm] = useState(false);
+    const [showEditConversationForm, setShowEditConversationForm] = useState(false);
+    const [showNewConversationForm, setShowNewConversationForm] = useState(false);
     const [settings, setSettings] = useState<Settings>(getSettings());
+    const [conversations, setConversations] = useState<ChatConversation[]>(getChatConversations());
+    const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Load chat records and conversations from local storage on initialization
@@ -26,7 +32,6 @@ export const ChatInterface: React.FC = () => {
         ]);
         setMessages(loadedMessages);
 
-        const conversations = getChatConversations();
         if (conversations.length > 0) {
             const lastConversation = conversations[conversations.length - 1];
             setSettings(prev => ({ ...prev, conversationId: lastConversation.id }));
@@ -40,6 +45,7 @@ export const ChatInterface: React.FC = () => {
             saveChatConversation(newConversation);
             setSettings(prev => ({ ...prev, conversationId: newConversation.id }));
             saveSettings({ ...settings, conversationId: newConversation.id });
+            setConversations(prev => [...prev, newConversation]);
         }
     }, []);
 
@@ -87,6 +93,7 @@ export const ChatInterface: React.FC = () => {
                 model: currentSettings.model,
                 systemPrompt: currentSettings.systemPrompt,
                 username: currentSettings.username,
+                relatedMessageIds: messages.map((_, index) => uuidv4().toString()),
                 conversationId: currentSettings.conversationId
             };
             saveChatRecord(chatRecord);
@@ -114,6 +121,48 @@ export const ChatInterface: React.FC = () => {
         saveChatConversation(newConversation);
         setSettings(prev => ({ ...prev, conversationId: newConversation.id }));
         saveSettings({ ...settings, conversationId: newConversation.id });
+        setConversations(prev => [...prev, newConversation]);
+    };
+
+    const handleEditConversationClick = (conversationId: string) => {
+        setSelectedConversationId(conversationId);
+        setShowEditConversationForm(true);
+    };
+
+    const closeEditConversationForm = (updatedConversation?: ChatConversation) => {
+        if (updatedConversation) {
+            const updatedConversations = conversations.map(conv =>
+                conv.id === updatedConversation.id ? updatedConversation : conv
+            );
+            setConversations(updatedConversations);
+            localStorage.setItem('chat_conversations', JSON.stringify(updatedConversations));
+        }
+        setShowEditConversationForm(false);
+    };
+
+    const handleNewConversationClick = () => {
+        setShowNewConversationForm(true);
+    };
+
+    const closeNewConversationForm = (newConversation?: ChatConversation) => {
+        if (newConversation) {
+            setSettings(prev => ({ ...prev, conversationId: newConversation.id }));
+            saveSettings({ ...settings, conversationId: newConversation.id });
+            setConversations(prev => [...prev, newConversation]);
+            setMessages([]);
+        }
+        setShowNewConversationForm(false);
+    };
+
+    const handleLoadConversation = (conversationId: string) => {
+        const records = getChatRecords().filter(record => record.conversationId === conversationId);
+        const loadedMessages: Message[] = records.flatMap(record => [
+            { role: 'user', content: record.request },
+            { role: 'assistant', content: record.response }
+        ]);
+        setMessages(loadedMessages);
+        setSettings(prev => ({ ...prev, conversationId }));
+        saveSettings({ ...settings, conversationId });
     };
 
     const handleDeleteClick = (id: string) => {
@@ -146,6 +195,17 @@ export const ChatInterface: React.FC = () => {
     const confirmClear = () => {
         clearChatRecords();
         setMessages([]);
+        setConversations([]);
+        const newConversation: ChatConversation = {
+            id: uuidv4().toString(),
+            title: 'New Conversation',
+            created_at: new Date().toISOString(),
+            username: settings.username
+        };
+        saveChatConversation(newConversation);
+        setSettings(prev => ({ ...prev, conversationId: newConversation.id }));
+        saveSettings({ ...settings, conversationId: newConversation.id });
+        setConversations([newConversation]);
         setShowClearPopup(false);
     };
 
@@ -166,56 +226,99 @@ export const ChatInterface: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col h-[85vh] bg-white rounded-xl shadow-lg overflow-hidden">
-            {/* Settings Bar */}
-            <div className="flex items-center justify-between p-4 bg-gray-100 border-b border-gray-200">
-                <span>Model: {settings.model}</span>
-                <button
-                    className="p-2 bg-gray-500 text-white rounded-full shadow-lg"
-                    onClick={handleSettingsClick}
-                >
-                    ⚙️
-                </button>
+        <div className="flex h-[85vh] bg-white rounded-xl shadow-lg overflow-hidden">
+            {/* Chat Interface */}
+            <div className="flex flex-col flex-1">
+                {/* Settings Bar */}
+                <div className="flex items-center justify-between p-4 bg-gray-100 border-b border-gray-200">
+                    <span>
+                        <p className="font-bold">Conversation:</p> {settings.conversationId ? getChatConversations().find(conv => conv.id === settings.conversationId)?.title || '<none>' : '<none>'}
+                    </span>
+                    <span><p className="font-bold">Model:</p> {settings.model}</span>
+                    <button
+                        className="p-2 bg-gray-500 text-white rounded-full shadow-lg"
+                        onClick={handleSettingsClick}
+                    >
+                        ⚙️
+                    </button>
+                </div>
+
+                {/* Messages Container */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {messages.map((message, index) => (
+                        <div key={index} className="relative">
+                            <ChatMessage
+                                content={message.content}
+                                role={message.role}
+                                model={settings.model}
+                                username={settings.username}
+                                timestamp={new Date().toISOString()}
+                            />
+                            {index % 2 === 0 && (
+                                <button
+                                    className="absolute top-0 right-0 p-2 text-red-500"
+                                    onClick={() => handleDeleteClick(getChatRecords()[Math.floor(index / 2)].id)}
+                                >
+                                    🗑️
+                                </button>
+                            )}
+                        </div>
+                    ))}
+
+                    {/* Loading indicator */}
+                    {isLoading && (
+                        <div className="flex items-center justify-center space-x-2">
+                            <div className="animate-bounce">•</div>
+                            <div className="animate-bounce delay-100">•</div>
+                            <div className="animate-bounce delay-200">•</div>
+                        </div>
+                    )}
+
+                    {/* Auto-scroll anchor */}
+                    <div ref={messagesEndRef} />
+                </div>
+
+                {/* Input Area */}
+                <div className="border-t border-gray-200">
+                    <ChatInput
+                        onSendMessage={handleSendMessage}
+                        disabled={isLoading}
+                    />
+                </div>
             </div>
 
-            {/* Messages Container */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((message, index) => (
-                    <div key={index} className="relative">
-                        <ChatMessage
-                            content={message.content}
-                            role={message.role}
-                        />
-                        {index % 2 === 0 && (
+            {/* Conversations Section */}
+            <div className="w-1/3 flex flex-col bg-gray-50 border-l border-gray-200">
+                <div className="flex items-center justify-between p-4 bg-gray-100 border-b border-gray-200">
+                    <h2 className="text-xl font-bold">Conversations</h2>
+                    <button
+                        className="p-2 bg-green-500 text-white rounded-full shadow-lg"
+                        onClick={handleNewConversationClick}
+                    >
+                        +
+                    </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {conversations.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(conversation => (
+                        <div key={conversation.id} className="p-4 bg-white rounded-lg shadow">
+                            <p className="font-bold">{conversation.title}</p>
+                            <p className="text-xs text-gray-500">Username: {conversation.username}</p>
+                            <p className="text-xs text-gray-500">Created: {new Date(conversation.created_at).toLocaleString()}</p>
                             <button
-                                className="absolute top-0 right-0 p-2 text-red-500"
-                                onClick={() => handleDeleteClick(getChatRecords()[Math.floor(index / 2)].id)}
+                                className="mt-2 p-2 bg-blue-500 text-white rounded-full shadow-lg"
+                                onClick={() => handleLoadConversation(conversation.id)}
                             >
-                                🗑️
+                                Load
                             </button>
-                        )}
-                    </div>
-                ))}
-
-                {/* Loading indicator */}
-                {isLoading && (
-                    <div className="flex items-center justify-center space-x-2">
-                        <div className="animate-bounce">•</div>
-                        <div className="animate-bounce delay-100">•</div>
-                        <div className="animate-bounce delay-200">•</div>
-                    </div>
-                )}
-
-                {/* Auto-scroll anchor */}
-                <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <div className="border-t border-gray-200">
-                <ChatInput
-                    onSendMessage={handleSendMessage}
-                    disabled={isLoading}
-                />
+                            <button
+                                className="mt-2 ml-2 p-2 bg-gray-500 text-white rounded-full shadow-lg"
+                                onClick={() => handleEditConversationClick(conversation.id)}
+                            >
+                                ✏️
+                            </button>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* Delete Confirmation Popup */}
@@ -266,6 +369,24 @@ export const ChatInterface: React.FC = () => {
 
             {/* Settings Form */}
             {showSettingsForm && <SettingsForm onClose={() => setShowSettingsForm(false)} onSave={closeSettingsForm} />}
+
+            {/* Edit Conversation Form */}
+            {showEditConversationForm && selectedConversationId && (
+                <EditConversationForm
+                    conversationId={selectedConversationId}
+                    onClose={() => setShowEditConversationForm(false)}
+                    onSave={closeEditConversationForm}
+                />
+            )}
+
+            {/* New Conversation Form */}
+            {showNewConversationForm && (
+                <NewConversationForm
+                    onClose={() => setShowNewConversationForm(false)}
+                    onSave={closeNewConversationForm}
+                    username={settings.username}
+                />
+            )}
 
             {/* Clear All Button */}
             <button

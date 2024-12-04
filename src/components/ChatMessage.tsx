@@ -9,9 +9,12 @@ import 'katex/dist/katex.min.css';
 interface ChatMessageProps {
     content: string;
     role: 'user' | 'assistant' | 'system';
+    model?: string;
+    username?: string;
+    timestamp?: string;
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ content, role }) => {
+export const ChatMessage: React.FC<ChatMessageProps> = ({ content, role, model, username, timestamp }) => {
     const isUser = role === 'user';
 
     return (
@@ -57,6 +60,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ content, role }) => {
                 >
                     {content}
                 </ReactMarkdown>
+                {model && username && timestamp && (
+                    <div className="text-xs text-gray-500 mt-2">
+                        {!isUser && (
+                            <p>Model: {model} | Username: {username} | Timestamp: {new Date(timestamp).toLocaleString()}</p>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

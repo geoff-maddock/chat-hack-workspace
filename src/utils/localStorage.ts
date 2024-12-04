@@ -8,6 +8,7 @@ export interface ChatRecord {
     model: string;
     systemPrompt: string;
     username: string;
+    relatedMessageIds: string[];
     conversationId: string | null;
 }
 
@@ -40,6 +41,7 @@ export function deleteChatRecord(id: string) {
 
 export function clearChatRecords() {
     localStorage.removeItem(CHAT_RECORDS_KEY);
+    localStorage.removeItem(CHAT_CONVERSATIONS_KEY);
 }
 
 export function saveChatConversation(conversation: ChatConversation) {
