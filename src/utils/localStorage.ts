@@ -19,3 +19,13 @@ export function getChatRecords(): ChatRecord[] {
     const records = localStorage.getItem(STORAGE_KEY);
     return records ? JSON.parse(records) : [];
 }
+
+export function deleteChatRecord(id: string) {
+    const records = getChatRecords();
+    const updatedRecords = records.filter(record => record.id !== id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRecords));
+}
+
+export function clearChatRecords() {
+    localStorage.removeItem(STORAGE_KEY);
+}

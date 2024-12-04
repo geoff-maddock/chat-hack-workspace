@@ -1,50 +1,44 @@
-# React + TypeScript + Vite
+# ChatHack Workspace Alpha
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This app is a workspace application for developers to improve their productivity by connecting together different APIs, tools and services in one place.  Pre-cursor to Auto-Dev Workspace project.
 
-Currently, two official plugins are available:
+## Features
+- **Chat**: Chat with the Expedient CTRL LLM, store and rate responses, and refine the responses.
+- **Tasks**: Create, assign, and track tasks.  Refine with the LLM and update in To Do.
+- **Enrich**: Enrich your data with the LLM.  Create and use a knowledge base of system prompts to improve your text.
+- **Align**: Align your work with the hierarchy of company goals.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
-
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
-
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+## Backlog
+- **Chat**: Add a chatbot to the chat.
+  - [x] Add connection to Expedient CTRL LLN
+  - [x] Create chat UI
+  - [] Add controls to modify or re-roll the chat, either by the whole chat or by individual messages
+  - [] Store requests and responses in IndexDB
+  - [] Set a status on chats: "Archive", "Working", "Refine", "Research", "Complete"
+- **Tasks**:
+  - [] Create task UI - Create List, Create Task, Set due data
+  - [] Sync with Microsoft To DO
+- **Enrich**:
+  - [] Create system prompts
+    - [] Schema: Role, Topic (tags, or single), Prompt, Model, Version, Order (for chaining prompts)
+    - [] Create prompts for these types of queries:  
+        - Standup
+        - Issue - Creation
+        - Issue - Grooming
+        - Issue - Work
+        - Issue - Review
+        - Task - Spike
+        - Task - Unlabelled
+  - [] Create cron job that will work on refining or researching existing chats
+- **Align**:
+  - [] Create goal UI to add or edit goals
+  - [] Goal schema: Name, Level, Parent, Description, Due Date, Status
+  - [] Create example goals:
+        - Company - Expedient
+        - Department - BITS
+        - Team - IS Dev
+        - Epic - Various
+        - Sprint - Two Weeks of Work with a specific goal
+        - Individual - Specific Items
+  - [] Allow the goal sets to be referenced in the chat for alignment
+  - [] Add action to create a list of tasks to align with a goal
