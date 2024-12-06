@@ -14,6 +14,7 @@ import { getSettings, saveSettings, Settings } from '../utils/settings';
 export const ChatInterface: React.FC = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isUserScrolling, setIsUserScrolling] = useState(false); // Track user scrolling
     const [showDeletePopup, setShowDeletePopup] = useState(false);
     const [deleteRecordId, setDeleteRecordId] = useState<string | null>(null);
     const [showClearPopup, setShowClearPopup] = useState(false);
@@ -23,14 +24,27 @@ export const ChatInterface: React.FC = () => {
     const [settings, setSettings] = useState<Settings>(getSettings());
     const [conversations, setConversations] = useState<ChatConversation[]>(getChatConversations());
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(settings.conversationId);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = useCallback(() => {
+        if (!isUserScrolling) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [isUserScrolling]);
+
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [scrollToBottom, messagesEndRef, settings.conversationId, conversations.length]);
+
 
     // Load chat records and conversations from local storage on initialization
     useEffect(() => {
         const records = getChatRecords().filter(record => record.conversationId === settings.conversationId);
         const loadedMessages: Message[] = records.flatMap(record => [
-            { role: 'user', content: record.request },
-            { role: 'assistant', content: record.response }
+            { role: 'user' as const, content: record.request },
+            { role: 'assistant' as const, content: record.response }
         ]);
         setMessages(loadedMessages);
 
@@ -45,7 +59,8 @@ export const ChatInterface: React.FC = () => {
                 title: 'New Conversation',
                 description: '',
                 created_at: new Date().toISOString(),
-                username: settings.username
+                username: settings.username,
+                spaceId: null // Add this line
             };
             saveChatConversation(newConversation);
             setSettings(prev => ({ ...prev, conversationId: newConversation.id }));
@@ -54,16 +69,10 @@ export const ChatInterface: React.FC = () => {
         }
     }, [settings.conversationId]);
 
-    // Auto-scroll to bottom when new messages arrive
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
 
     const handleSendMessage = useCallback(async (userMessage: string) => {
+
+        console.log('handleSendMessage was called ');
         if (!userMessage.trim()) return;
 
         // Log the user message to the console
@@ -78,6 +87,7 @@ export const ChatInterface: React.FC = () => {
         setIsLoading(true);
 
         try {
+            console.log('Sending request to API with messages and model:', currentSettings.model);
             // Get AI response
             const response = await generateChatResponse([
                 { role: 'system', content: currentSettings.systemPrompt },
@@ -101,7 +111,6 @@ export const ChatInterface: React.FC = () => {
                 model: currentSettings.model,
                 systemPrompt: currentSettings.systemPrompt,
                 username: currentSettings.username,
-                relatedMessageIds: messages.map((_, index) => uuidv4().toString()),
                 conversationId: currentSettings.conversationId
             };
             saveChatRecord(chatRecord);
@@ -119,6 +128,14 @@ export const ChatInterface: React.FC = () => {
         }
     }, [messages]);
 
+    const handleScroll = () => {
+        if (chatContainerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+            setIsUserScrolling(scrollTop + clientHeight < scrollHeight);
+        }
+    };
+
+
     const handleClearClick = () => {
         setShowClearPopup(true);
     };
@@ -132,7 +149,8 @@ export const ChatInterface: React.FC = () => {
             title: 'New Conversation',
             description: '',
             created_at: new Date().toISOString(),
-            username: settings.username
+            username: settings.username,
+            spaceId: null
         };
         saveChatConversation(newConversation);
         setSettings(prev => ({ ...prev, conversationId: newConversation.id }));
@@ -207,8 +225,8 @@ export const ChatInterface: React.FC = () => {
         if (deleteRecordId) {
             deleteChatRecord(deleteRecordId);
             const updatedMessages = getChatRecords().filter(record => record.conversationId === settings.conversationId).flatMap(record => [
-                { role: 'user', content: record.request },
-                { role: 'assistant', content: record.response }
+                { role: 'user' as const, content: record.request },
+                { role: 'assistant' as const, content: record.response }
             ]);
             setMessages(updatedMessages);
             setDeleteRecordId(null);
@@ -224,7 +242,7 @@ export const ChatInterface: React.FC = () => {
     return (
         <div className="flex h-[85vh] bg-white rounded-xl shadow-lg overflow-hidden">
             {/* Chat Interface */}
-            <div className="flex flex-col flex-1">
+            <div className="flex flex-col flex-1" ref={chatContainerRef} onScroll={handleScroll}>
                 {/* Settings Bar */}
                 <div className="flex items-center justify-between p-4 bg-gray-100 border-b border-gray-200">
                     <span>
