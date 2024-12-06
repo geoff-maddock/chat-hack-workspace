@@ -44,6 +44,7 @@ export function getChatRecords(): ChatRecord[] {
 }
 
 export function deleteChatRecord(id: string) {
+    console.log('Deleting chat record with id:', id);
     const records = getChatRecords();
     const updatedRecords = records.filter(record => record.id !== id);
     localStorage.setItem(CHAT_RECORDS_KEY, JSON.stringify(updatedRecords));

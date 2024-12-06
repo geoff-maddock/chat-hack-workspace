@@ -217,12 +217,16 @@ export const ChatInterface: React.FC = () => {
     };
 
     const handleDeleteClick = (id: string) => {
+        console.log('delete click');
+        console.log('confirm delete of record:', id);
         setDeleteRecordId(id);
         setShowDeletePopup(true);
     };
 
     const confirmDelete = () => {
+        console.log('confirm delete of record:', deleteRecordId);
         if (deleteRecordId) {
+            console.log('confirm delete');
             deleteChatRecord(deleteRecordId);
             const updatedMessages = getChatRecords().filter(record => record.conversationId === settings.conversationId).flatMap(record => [
                 { role: 'user' as const, content: record.request },
@@ -272,7 +276,10 @@ export const ChatInterface: React.FC = () => {
                             {index % 2 === 0 && (
                                 <button
                                     className="absolute top-0 right-0 p-2 text-red-500"
-                                    onClick={() => handleDeleteClick(getChatRecords()[Math.floor(index / 2)].id)}
+                                    onClick={() => {
+                                        const filteredRecords = getChatRecords().filter(record => record.conversationId === settings.conversationId);
+                                        handleDeleteClick(filteredRecords[Math.floor(index / 2)].id);
+                                    }}
                                 >
                                     🗑️
                                 </button>
