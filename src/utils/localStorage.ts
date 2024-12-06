@@ -15,12 +15,23 @@ export interface ChatRecord {
 export interface ChatConversation {
     id: string;
     title: string;
+    description: string;
+    created_at: string;
+    username: string;
+    spaceId: string | null; // Add this line
+}
+
+export interface Space { // Add this interface
+    id: string;
+    title: string;
+    description: string;
     created_at: string;
     username: string;
 }
 
 const CHAT_RECORDS_KEY = 'chat_records';
 const CHAT_CONVERSATIONS_KEY = 'chat_conversations';
+const SPACES_KEY = 'spaces'; // Add this line
 
 export function saveChatRecord(record: ChatRecord) {
     const records = getChatRecords();
@@ -63,4 +74,26 @@ export function deleteChatConversation(id: string) {
 
 export function clearChatConversations() {
     localStorage.removeItem(CHAT_CONVERSATIONS_KEY);
+}
+
+// Add functions to handle spaces
+export function saveSpace(space: Space) {
+    const spaces = getSpaces();
+    spaces.push(space);
+    localStorage.setItem(SPACES_KEY, JSON.stringify(spaces));
+}
+
+export function getSpaces(): Space[] {
+    const spaces = localStorage.getItem(SPACES_KEY);
+    return spaces ? JSON.parse(spaces) : [];
+}
+
+export function deleteSpace(id: string) {
+    const spaces = getSpaces();
+    const updatedSpaces = spaces.filter(space => space.id !== id);
+    localStorage.setItem(SPACES_KEY, JSON.stringify(updatedSpaces));
+}
+
+export function clearSpaces() {
+    localStorage.removeItem(SPACES_KEY);
 }

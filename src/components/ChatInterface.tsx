@@ -1,3 +1,4 @@
+// src/components/ChatInterface.tsx
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { ChatMessage } from './ChatMessage';
@@ -5,6 +6,7 @@ import { ChatInput } from './ChatInput';
 import { SettingsForm } from './SettingsForm';
 import { EditConversationForm } from './EditConversationForm';
 import { NewConversationForm } from './NewConversationForm';
+import { RequestCount } from './RequestCount';
 import { generateChatResponse, ChatMessage as Message } from '../utils/openaiClient';
 import { saveChatRecord, getChatRecords, deleteChatRecord, clearChatRecords, ChatRecord, saveChatConversation, getChatConversations, ChatConversation } from '../utils/localStorage';
 import { getSettings, saveSettings, Settings } from '../utils/settings';
@@ -20,12 +22,12 @@ export const ChatInterface: React.FC = () => {
     const [showNewConversationForm, setShowNewConversationForm] = useState(false);
     const [settings, setSettings] = useState<Settings>(getSettings());
     const [conversations, setConversations] = useState<ChatConversation[]>(getChatConversations());
-    const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+    const [selectedConversationId, setSelectedConversationId] = useState<string | null>(settings.conversationId);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Load chat records and conversations from local storage on initialization
     useEffect(() => {
-        const records = getChatRecords();
+        const records = getChatRecords().filter(record => record.conversationId === settings.conversationId);
         const loadedMessages: Message[] = records.flatMap(record => [
             { role: 'user', content: record.request },
             { role: 'assistant', content: record.response }
@@ -33,12 +35,15 @@ export const ChatInterface: React.FC = () => {
         setMessages(loadedMessages);
 
         if (conversations.length > 0) {
-            const lastConversation = conversations[conversations.length - 1];
-            setSettings(prev => ({ ...prev, conversationId: lastConversation.id }));
+            const lastConversation = conversations.find(conv => conv.id === settings.conversationId);
+            if (lastConversation) {
+                setSettings(prev => ({ ...prev, conversationId: lastConversation.id }));
+            }
         } else {
             const newConversation: ChatConversation = {
                 id: uuidv4().toString(),
                 title: 'New Conversation',
+                description: '',
                 created_at: new Date().toISOString(),
                 username: settings.username
             };
@@ -47,7 +52,7 @@ export const ChatInterface: React.FC = () => {
             saveSettings({ ...settings, conversationId: newConversation.id });
             setConversations(prev => [...prev, newConversation]);
         }
-    }, []);
+    }, [settings.conversationId]);
 
     // Auto-scroll to bottom when new messages arrive
     const scrollToBottom = () => {
@@ -60,6 +65,9 @@ export const ChatInterface: React.FC = () => {
 
     const handleSendMessage = useCallback(async (userMessage: string) => {
         if (!userMessage.trim()) return;
+
+        // Log the user message to the console
+        console.log('User message:', userMessage);
 
         // Load current settings
         const currentSettings = getSettings();
@@ -111,17 +119,42 @@ export const ChatInterface: React.FC = () => {
         }
     }, [messages]);
 
-    const handleCreateConversation = (title: string) => {
+    const handleClearClick = () => {
+        setShowClearPopup(true);
+    };
+
+    const confirmClear = () => {
+        clearChatRecords();
+        setMessages([]);
+        setConversations([]);
         const newConversation: ChatConversation = {
             id: uuidv4().toString(),
-            title,
+            title: 'New Conversation',
+            description: '',
             created_at: new Date().toISOString(),
             username: settings.username
         };
         saveChatConversation(newConversation);
         setSettings(prev => ({ ...prev, conversationId: newConversation.id }));
         saveSettings({ ...settings, conversationId: newConversation.id });
-        setConversations(prev => [...prev, newConversation]);
+        setConversations([newConversation]);
+        setShowClearPopup(false);
+    };
+
+    const cancelClear = () => {
+        setShowClearPopup(false);
+    };
+
+    const handleSettingsClick = () => {
+        setShowSettingsForm(true);
+    };
+
+    const closeSettingsForm = (newSettings?: Settings) => {
+        if (newSettings) {
+            setSettings(newSettings);
+            saveSettings(newSettings);
+        }
+        setShowSettingsForm(false);
     };
 
     const handleEditConversationClick = (conversationId: string) => {
@@ -173,7 +206,7 @@ export const ChatInterface: React.FC = () => {
     const confirmDelete = () => {
         if (deleteRecordId) {
             deleteChatRecord(deleteRecordId);
-            const updatedMessages = getChatRecords().flatMap(record => [
+            const updatedMessages = getChatRecords().filter(record => record.conversationId === settings.conversationId).flatMap(record => [
                 { role: 'user', content: record.request },
                 { role: 'assistant', content: record.response }
             ]);
@@ -186,43 +219,6 @@ export const ChatInterface: React.FC = () => {
     const cancelDelete = () => {
         setDeleteRecordId(null);
         setShowDeletePopup(false);
-    };
-
-    const handleClearClick = () => {
-        setShowClearPopup(true);
-    };
-
-    const confirmClear = () => {
-        clearChatRecords();
-        setMessages([]);
-        setConversations([]);
-        const newConversation: ChatConversation = {
-            id: uuidv4().toString(),
-            title: 'New Conversation',
-            created_at: new Date().toISOString(),
-            username: settings.username
-        };
-        saveChatConversation(newConversation);
-        setSettings(prev => ({ ...prev, conversationId: newConversation.id }));
-        saveSettings({ ...settings, conversationId: newConversation.id });
-        setConversations([newConversation]);
-        setShowClearPopup(false);
-    };
-
-    const cancelClear = () => {
-        setShowClearPopup(false);
-    };
-
-    const handleSettingsClick = () => {
-        setShowSettingsForm(true);
-    };
-
-    const closeSettingsForm = (newSettings?: Settings) => {
-        if (newSettings) {
-            setSettings(newSettings);
-            saveSettings(newSettings);
-        }
-        setShowSettingsForm(false);
     };
 
     return (
@@ -398,6 +394,9 @@ export const ChatInterface: React.FC = () => {
             >
                 🗑️
             </button>
+
+            {/* Request Count */}
+            <RequestCount />
         </div>
     );
 };

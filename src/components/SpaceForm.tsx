@@ -1,40 +1,36 @@
-// src/components/NewConversationForm.tsx
+// src/components/SpaceForm.tsx
 import React, { useState } from 'react';
-import { ChatConversation, saveChatConversation, getSpaces, Space } from '../utils/localStorage';
+import { Space, saveSpace, getSpaces, deleteSpace } from '../utils/localStorage';
 import { v4 as uuidv4 } from 'uuid';
 
-interface NewConversationFormProps {
+interface SpaceFormProps {
     onClose: () => void;
-    onSave: (conversation: ChatConversation) => void;
-    username: string;
+    onSave: (space: Space) => void;
+    space?: Space;
 }
 
-export const NewConversationForm: React.FC<NewConversationFormProps> = ({ onClose, onSave, username }) => {
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [spaceId, setSpaceId] = useState<string | null>(null); // Add this line
-
-    const spaces: Space[] = getSpaces(); // Add this line
+export const SpaceForm: React.FC<SpaceFormProps> = ({ onClose, onSave, space }) => {
+    const [title, setTitle] = useState(space?.title || '');
+    const [description, setDescription] = useState(space?.description || '');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const newConversation: ChatConversation = {
-            id: uuidv4().toString(),
+        const newSpace: Space = {
+            id: space?.id || uuidv4().toString(),
             title,
             description,
-            created_at: new Date().toISOString(),
-            username,
-            spaceId // Add this line
+            created_at: space?.created_at || new Date().toISOString(),
+            username: space?.username || 'defaultUser' // Replace with actual username logic
         };
-        saveChatConversation(newConversation);
-        onSave(newConversation);
+        saveSpace(newSpace);
+        onSave(newSpace);
         onClose();
     };
 
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
             <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h2 className="text-xl font-bold mb-4">New Conversation</h2>
+                <h2 className="text-xl font-bold mb-4">{space ? 'Edit Space' : 'New Space'}</h2>
                 <form onSubmit={handleSubmit}>
                     <div className="mb-4">
                         <label className="block text-sm font-medium mb-2">Title</label>
@@ -53,21 +49,6 @@ export const NewConversationForm: React.FC<NewConversationFormProps> = ({ onClos
                             onChange={(e) => setDescription(e.target.value)}
                             className="w-full p-2 border rounded"
                         />
-                    </div>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium mb-2">Space</label>
-                        <select
-                            value={spaceId || ''}
-                            onChange={(e) => setSpaceId(e.target.value || null)}
-                            className="w-full p-2 border rounded"
-                        >
-                            <option value="">None</option>
-                            {spaces.map(space => (
-                                <option key={space.id} value={space.id}>
-                                    {space.title}
-                                </option>
-                            ))}
-                        </select>
                     </div>
                     <div className="flex justify-end space-x-2">
                         <button

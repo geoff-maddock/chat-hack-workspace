@@ -1,10 +1,11 @@
 // src/utils/settings.ts
 
 export interface Settings {
+    conversationId: string | null;
     model: string;
     systemPrompt: string;
     username: string;
-    conversationId: string | null;
+    totalRequests?: number; // Add this line
 }
 
 const SETTINGS_KEY = 'chat_settings';
@@ -19,7 +20,8 @@ Files may be attached to the user's messages, in which case they will be convert
 
 If you have sent a message with a Markdown formatted image in it, go ahead and take credit for generating it, as another AI model was brought in to fulfill that request. Feel free to use that image's description to describe the image if relevant.`,
     username: 'system',
-    conversationId: null
+    conversationId: null,
+    totalRequests: 0 // Add this line
 };
 
 export function saveSettings(settings: Settings) {
