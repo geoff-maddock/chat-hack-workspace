@@ -11,14 +11,19 @@ const openai = new OpenAI({
 });
 
 export async function handler(req: Request) {
+    console.log('Received request:', req.method, req.url);
+
     if (req.method !== 'POST') {
+        console.warn('Invalid request method:', req.method);
         return new Response('Method not allowed', { status: 405 });
     }
 
     try {
         const { messages } = await req.json();
+        console.log('Parsed messages:', messages);
 
         if (!messages || !Array.isArray(messages)) {
+            console.warn('Invalid input: Messages must be an array');
             return new Response(
                 JSON.stringify({
                     error: 'Invalid input',
@@ -31,12 +36,15 @@ export async function handler(req: Request) {
             );
         }
 
+        console.log('Sending request to OpenAI API with model:', model);
         const response = await openai.chat.completions.create({
             model: model,
             messages: messages,
             max_tokens: 300,
             temperature: 0.7
         });
+
+        console.log('Received response from OpenAI API:', response);
 
         return new Response(
             JSON.stringify({

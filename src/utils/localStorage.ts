@@ -8,7 +8,6 @@ export interface ChatRecord {
     model: string;
     systemPrompt: string;
     username: string;
-    relatedMessageIds: string[];
     conversationId: string | null;
 }
 
