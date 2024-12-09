@@ -11,7 +11,7 @@ const openai = new OpenAI({
 });
 
 export async function handler(req: Request) {
-    console.log('Received request:', req.method, req.url);
+    console.log('Received request in chat.ts handler:', req.method, req.url);
 
     if (req.method !== 'POST') {
         console.warn('Invalid request method:', req.method);
