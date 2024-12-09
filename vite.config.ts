@@ -4,11 +4,22 @@ import { handler as chatHandler } from './src/api/chat';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+let proxyCount = 0;
+
 async function handleProxyRequest(req: any, res: any, retryCount = 0) {
   let body = '';
   req.on('data', chunk => body += chunk);
 
+  // added to prevent infinite loop
+  if (proxyCount > 10) {
+    throw new Error('Proxy loop detected');
+  }
+
   req.on('end', async () => {
+    proxyCount++;
+    if (proxyCount > 1) {
+      console.log(`Proxy request ${proxyCount} for ${req.url}`);
+    }
     try {
       const request = new Request('http://localhost:3000' + req.url, {
         method: req.method,
@@ -22,15 +33,15 @@ async function handleProxyRequest(req: any, res: any, retryCount = 0) {
       const responseBody = await response.text();
 
       if (response.status === 429) {
-        const retryAfter = response.headers.get('retry-after-ms') || response.headers.get('retry-after');
-        const retryDelay = retryAfter ? parseInt(retryAfter, 10) : 2000; // Default to 2 seconds if no header
-        if (retryCount < 3) {
-          console.warn(`Rate limit exceeded. Retrying after ${retryDelay}ms...`);
-          await delay(retryDelay);
-          return handleProxyRequest(req, res, retryCount + 1);
-        } else {
-          throw new Error('Rate limit exceeded. Please try again later.');
-        }
+        // const retryAfter = response.headers.get('retry-after-ms') || response.headers.get('retry-after');
+        // const retryDelay = retryAfter ? parseInt(retryAfter, 10) : 2000; // Default to 2 seconds if no header
+        // if (retryCount < 3) {
+        //   console.warn(`Rate limit exceeded. Retrying after ${retryDelay}ms...`);
+        //   await delay(retryDelay);
+        //   return handleProxyRequest(req, res, retryCount + 1);
+        // } else {
+        //   throw new Error('Rate limit exceeded. Please try again later.');
+        // }
       }
 
       if (!res.headersSent) {
