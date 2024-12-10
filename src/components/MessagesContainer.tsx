@@ -11,7 +11,7 @@ interface MessagesContainerProps {
     messages: Message[];
     isLoading: boolean;
     handleSendMessage: (userMessage: string) => void;
-    handleDeleteClick: (id: string) => void;
+    handleDeleteMessageClick: (id: string) => void;
     chatContainerRef: React.RefObject<HTMLDivElement>;
     messagesEndRef: React.RefObject<HTMLDivElement>;
     handleScroll: () => void;
@@ -24,7 +24,7 @@ export const MessagesContainer: React.FC<MessagesContainerProps> = ({
     messages,
     isLoading,
     handleSendMessage,
-    handleDeleteClick,
+    handleDeleteMessageClick,
     chatContainerRef,
     messagesEndRef,
     handleScroll,
@@ -49,7 +49,7 @@ export const MessagesContainer: React.FC<MessagesContainerProps> = ({
                             username={message.username}
                             timestamp={message.timestamp}
                             id={message.id}
-                            handleDeleteClick={handleDeleteClick}
+                            handleDeleteMessageClick={handleDeleteMessageClick}
                         />
                     </div>
                 ))}
