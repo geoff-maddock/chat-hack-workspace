@@ -10,7 +10,7 @@ export interface Settings {
 
 const SETTINGS_KEY = 'chat_settings';
 
-const defaultSettings: Settings = {
+export const defaultSettings: Settings = {
     model: 'gpt-4o',
     systemPrompt: `You are a friendly and helpful assistant.
 

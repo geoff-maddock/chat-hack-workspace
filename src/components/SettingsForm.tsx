@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getSettings, saveSettings, Settings } from '../utils/settings';
+import { getSettings, saveSettings, Settings, defaultSettings } from '../utils/settings';
 
 interface SettingsFormProps {
     onClose: () => void;
@@ -36,7 +36,7 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({ onClose, onSave }) =
     };
 
     const handleReset = () => {
-        setSettings(getSettings());
+        setSettings(defaultSettings);
     };
 
     return (
