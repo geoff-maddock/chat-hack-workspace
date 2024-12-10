@@ -37,6 +37,7 @@ export async function handler(req: Request) {
         }
 
         console.log('Sending request to OpenAI API with model:', model);
+        console.log('---')
         const response = await openai.chat.completions.create({
             model: model,
             messages: messages,
