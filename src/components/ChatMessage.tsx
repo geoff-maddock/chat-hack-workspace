@@ -1,3 +1,4 @@
+// src/components/ChatMessage.tsx
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { User, Bot } from 'lucide-react';
@@ -12,9 +13,11 @@ interface ChatMessageProps {
     model?: string;
     username?: string;
     timestamp?: string;
+    id: string;
+    handleDeleteClick: (id: string) => void;
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ content, role, model, username, timestamp }) => {
+export const ChatMessage: React.FC<ChatMessageProps> = ({ content, role, model, username, timestamp, id, handleDeleteClick }) => {
     const isUser = role === 'user';
 
     return (
@@ -40,34 +43,22 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ content, role, model, 
                                 {children}
                             </code>
                         ),
-                        pre: ({ node, children, ...props }) => (
-                            <pre
-                                className="bg-gray-100 p-3 rounded-md overflow-x-auto text-sm mb-2"
-                                {...props}
-                            >
-                                {children}
-                            </pre>
-                        ),
-                        a: ({ node, ...props }) => (
-                            <a
-                                className="text-blue-600 hover:underline"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                {...props}
-                            />
-                        ),
                     }}
                 >
                     {content}
                 </ReactMarkdown>
-                {model && username && timestamp && (
-                    <div className="text-xs text-gray-500 mt-2">
-                        {!isUser && (
-                            <p>Model: {model} | Username: {username} | Timestamp: {new Date(timestamp).toLocaleString()}</p>
-                        )}
-                    </div>
-                )}
+                <div className="text-xs text-gray-500 mt-2">
+                    {model && <span>Model: {model} | </span>}
+                    {username && <span>Username: {username} | </span>}
+                    {timestamp && <span>Timestamp: {new Date(timestamp).toLocaleString()}</span>}
+                </div>
             </div>
+            <button
+                className="absolute top-0 right-0 p-2 text-red-500"
+                onClick={() => handleDeleteClick(id)}
+            >
+                🗑️
+            </button>
         </div>
     );
 };
