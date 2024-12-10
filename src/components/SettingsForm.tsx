@@ -40,8 +40,8 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({ onClose, onSave }) =
     };
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-1/3"> {/* Adjusted width */}
                 <h2 className="text-xl font-bold mb-4">Settings</h2>
                 <form onSubmit={handleSubmit}>
                     <div className="mb-4">
