@@ -1,16 +1,18 @@
 // src/components/ChatInterface.tsx
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { ConversationsList } from './ConversationsList';
+import { ConversationList } from './ConversationList';
 import { MessagesContainer } from './MessagesContainer';
+import { PromptTemplateList } from './PromptTemplateList';
 import { DeleteConfirmationPopup } from './DeleteConfirmationPopup';
 import { ClearConfirmationPopup } from './ClearConfirmationPopup';
 import { SettingsForm } from './SettingsForm';
 import { EditConversationForm } from './EditConversationForm';
 import { NewConversationForm } from './NewConversationForm';
+import { NewTemplateForm } from './NewTemplateForm'; // Add this import
 import { RequestCount } from './RequestCount';
 import { generateChatResponse, ChatMessage as Message } from '../utils/openaiClient';
-import { saveChatRecord, getChatRecords, deleteChatRecord, clearChatRecords, ChatRecord, saveChatConversation, getChatConversations, deleteChatConversation, clearChatConversations, ChatConversation } from '../utils/localStorage';
+import { saveChatRecord, getChatRecords, deleteChatRecord, clearChatRecords, ChatRecord, saveChatConversation, getChatConversations, deleteChatConversation, clearChatConversations, ChatConversation, PromptTemplate, savePromptTemplate, getPromptTemplates, deletePromptTemplate } from '../utils/localStorage';
 import { getSettings, saveSettings, Settings } from '../utils/settings';
 
 export const ChatInterface: React.FC = () => {
@@ -24,8 +26,10 @@ export const ChatInterface: React.FC = () => {
     const [showSettingsForm, setShowSettingsForm] = useState(false);
     const [showEditConversationForm, setShowEditConversationForm] = useState(false);
     const [showNewConversationForm, setShowNewConversationForm] = useState(false);
+    const [showNewTemplateForm, setShowNewTemplateForm] = useState(false); // Track new template form visibility
     const [settings, setSettings] = useState<Settings>(getSettings());
     const [conversations, setConversations] = useState<ChatConversation[]>(getChatConversations());
+    const [templates, setTemplates] = useState<PromptTemplate[]>(getPromptTemplates());
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(settings.conversationId);
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -214,11 +218,14 @@ export const ChatInterface: React.FC = () => {
             setDeleteMessageId(null);
             setShowDeletePopup(false);
         } else if (deleteConversationId) {
+<<<<<<< HEAD
             // Delete all chat records associated with the conversation
             const records = getChatRecords().filter(record => record.conversationId === deleteConversationId);
             records.forEach(record => deleteChatRecord(record.id));
 
             // Delete the conversation
+=======
+>>>>>>> 2e82907 (Added code for prompt templates)
             deleteChatConversation(deleteConversationId);
 
             // Update state
@@ -243,8 +250,36 @@ export const ChatInterface: React.FC = () => {
         setShowDeletePopup(false);
     };
 
+    const handleAddTemplateClick = () => {
+        setShowNewTemplateForm(true);
+    };
+
+    const handleEditTemplateClick = (templateId: string) => {
+        // Implement edit template logic
+    };
+
+    const handleDeleteTemplateClick = (templateId: string) => {
+        deletePromptTemplate(templateId);
+        setTemplates(getPromptTemplates());
+    };
+
+    const closeNewTemplateForm = (newTemplate?: PromptTemplate) => {
+        if (newTemplate) {
+            setTemplates(prev => [...prev, newTemplate]);
+        }
+        setShowNewTemplateForm(false);
+    };
+
     return (
         <div className="flex h-[85vh] bg-white rounded-xl shadow-lg overflow-hidden">
+            <PromptTemplateList
+                templates={templates}
+                handleLoadTemplate={handleSendMessage}
+                handleEditTemplateClick={handleEditTemplateClick}
+                handleDeleteTemplateClick={handleDeleteTemplateClick}
+                handleNewTemplateClick={handleAddTemplateClick}
+            />
+
             <MessagesContainer
                 messages={messages}
                 isLoading={isLoading}
@@ -258,7 +293,7 @@ export const ChatInterface: React.FC = () => {
                 handleSettingsClick={handleSettingsClick}
             />
 
-            <ConversationsList
+            <ConversationList
                 conversations={conversations}
                 handleLoadConversation={handleLoadConversation}
                 handleEditConversationClick={handleEditConversationClick}
@@ -294,6 +329,14 @@ export const ChatInterface: React.FC = () => {
                 <NewConversationForm
                     onClose={() => setShowNewConversationForm(false)}
                     onSave={closeNewConversationForm}
+                    username={settings.username}
+                />
+            )}
+
+            {showNewTemplateForm && (
+                <NewTemplateForm
+                    onClose={() => setShowNewTemplateForm(false)}
+                    onSave={closeNewTemplateForm}
                     username={settings.username}
                 />
             )}
