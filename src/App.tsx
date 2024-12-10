@@ -1,17 +1,18 @@
+// src/App.tsx
+import React from 'react';
 import { ChatInterface } from './components/ChatInterface';
 
-function App() {
+const App: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-8">
-      <div className="mx-auto p-6 bg-white rounded-xl shadow-lg w-[1200px]"> {/* Combined container */}
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="w-full max-w-8xl p-4">
         <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
           ChatHack Workspace <small>Alpha</small>
         </h1>
-        <div className="flex flex-col h-[75vh]"> {/* Adjusted height for content */}
-          <ChatInterface />
-        </div>
+        <ChatInterface />
       </div>
     </div>
   );
-}
+};
+
 export default App;

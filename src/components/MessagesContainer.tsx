@@ -2,7 +2,7 @@
 import React from 'react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
-import { SettingsBar } from './SettingsBar'; // Add this import
+import { SettingsBar } from './SettingsBar';
 import { Message } from '../utils/openaiClient';
 import { ChatConversation } from '../utils/localStorage';
 import { Settings } from '../utils/settings';
@@ -33,7 +33,7 @@ export const MessagesContainer: React.FC<MessagesContainerProps> = ({
     handleSettingsClick
 }) => {
     return (
-        <div className="flex flex-col flex-1 w-2/4" ref={chatContainerRef} onScroll={handleScroll}>
+        <div className="flex flex-col flex-1 w-2/5" ref={chatContainerRef} onScroll={handleScroll}>
             <SettingsBar
                 settings={settings}
                 conversations={conversations}

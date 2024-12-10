@@ -1,10 +1,15 @@
 # ChatHack Workspace Alpha
 
-This app is a workspace application for developers to improve their productivity by connecting together different APIs, tools and services in one place.  Pre-cursor to Auto-Dev Workspace project.
+
+This app is a workspace application for developers to improve their productivity by connecting together different APIs, 
+tools and services in one place, with access to LLMs and othe AI services to enrich data and improve responses.
+
+Pre-cursor to Auto-Dev Workspace project.
 
 ## Features
-- **Chat**: Chat with the Expedient CTRL LLM, store, tag and rate responses, and refine the responses.  Group into conversations and topical spaces. Store requests and responses in local database for analysis and improvement.
+- **Chat**: Chat with the Expedient CTRL LLM, store, tag, rate responses, and refine the responses.  Group into conversations and topical spaces. Store requests and responses in local database for analysis and improvement.
 - **Prompt Templates**: Create, refine, tag and apply system prompts to improve LLM responses for particular types of queries.
+
 - **Tasks**: Create, assign, and track tasks.  Refine with the LLM and update in To Do.
 - **Enrich**: Enrich your data with the LLM.  Create and use a knowledge base of system prompts to improve your text.
 - **Align**: Align your work with the hierarchy of company goals.
