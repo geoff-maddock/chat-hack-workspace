@@ -14,10 +14,10 @@ interface ChatMessageProps {
     username?: string;
     timestamp?: string;
     id: string;
-    handleDeleteClick: (id: string) => void;
+    handleDeleteMessageClick: (id: string) => void;
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ content, role, model, username, timestamp, id, handleDeleteClick }) => {
+export const ChatMessage: React.FC<ChatMessageProps> = ({ content, role, model, username, timestamp, id, handleDeleteMessageClick }) => {
     const isUser = role === 'user';
 
     return (
@@ -47,18 +47,22 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ content, role, model, 
                 >
                     {content}
                 </ReactMarkdown>
-                <div className="text-xs text-gray-500 mt-2">
-                    {model && <span>Model: {model} | </span>}
-                    {username && <span>Username: {username} | </span>}
-                    {timestamp && <span>Timestamp: {new Date(timestamp).toLocaleString()}</span>}
-                </div>
+                {!isUser && (
+                    <div className="text-xs text-gray-500 mt-2">
+                        {model && <span>Model: {model} | </span>}
+                        {username && <span>Username: {username} | </span>}
+                        {timestamp && <span>Timestamp: {new Date(timestamp).toLocaleString()}</span>}
+                    </div>
+                )}
             </div>
-            <button
-                className="absolute top-0 right-0 p-2 text-red-500"
-                onClick={() => handleDeleteClick(id)}
-            >
-                🗑️
-            </button>
+            {isUser && (
+                <button
+                    className="absolute top-0 right-0 p-2 text-red-500"
+                    onClick={() => handleDeleteMessageClick(id)}
+                >
+                    🗑️
+                </button>
+            )}
         </div>
     );
 };

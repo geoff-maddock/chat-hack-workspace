@@ -19,6 +19,7 @@ export const ChatInterface: React.FC = () => {
     const [isUserScrolling, setIsUserScrolling] = useState(false); // Track user scrolling
     const [showDeletePopup, setShowDeletePopup] = useState(false);
     const [deleteMessageId, setDeleteMessageId] = useState<string | null>(null); // Track message to be deleted
+    const [deleteConversationId, setDeleteConversationId] = useState<string | null>(null); // Track conversation to be deleted
     const [showClearPopup, setShowClearPopup] = useState(false);
     const [showSettingsForm, setShowSettingsForm] = useState(false);
     const [showEditConversationForm, setShowEditConversationForm] = useState(false);
@@ -195,8 +196,13 @@ export const ChatInterface: React.FC = () => {
         saveSettings({ ...settings, conversationId });
     };
 
-    const handleDeleteClick = (messageId: string) => {
+    const handleDeleteMessageClick = (messageId: string) => {
         setDeleteMessageId(messageId);
+        setShowDeletePopup(true);
+    };
+
+    const handleDeleteClick = (conversationId: string) => {
+        setDeleteConversationId(conversationId);
         setShowDeletePopup(true);
     };
 
@@ -207,11 +213,33 @@ export const ChatInterface: React.FC = () => {
             setMessages(updatedMessages);
             setDeleteMessageId(null);
             setShowDeletePopup(false);
+        } else if (deleteConversationId) {
+            // Delete all chat records associated with the conversation
+            const records = getChatRecords().filter(record => record.conversationId === deleteConversationId);
+            records.forEach(record => deleteChatRecord(record.id));
+
+            // Delete the conversation
+            deleteChatConversation(deleteConversationId);
+
+            // Update state
+            const updatedConversations = conversations.filter(conv => conv.id !== deleteConversationId);
+            setConversations(updatedConversations);
+            localStorage.setItem('chat_conversations', JSON.stringify(updatedConversations));
+
+            // Clear messages if the deleted conversation was the selected one
+            if (deleteConversationId === selectedConversationId) {
+                setMessages([]);
+                setSelectedConversationId(null);
+            }
+
+            setDeleteConversationId(null);
+            setShowDeletePopup(false);
         }
     };
 
     const cancelDelete = () => {
         setDeleteMessageId(null);
+        setDeleteConversationId(null);
         setShowDeletePopup(false);
     };
 
@@ -221,7 +249,7 @@ export const ChatInterface: React.FC = () => {
                 messages={messages}
                 isLoading={isLoading}
                 handleSendMessage={handleSendMessage}
-                handleDeleteClick={handleDeleteClick}
+                handleDeleteMessageClick={handleDeleteMessageClick}
                 chatContainerRef={chatContainerRef}
                 messagesEndRef={messagesEndRef}
                 handleScroll={handleScroll}
