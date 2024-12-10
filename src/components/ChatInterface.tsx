@@ -9,7 +9,6 @@ import { ClearConfirmationPopup } from './ClearConfirmationPopup';
 import { SettingsForm } from './SettingsForm';
 import { EditConversationForm } from './EditConversationForm';
 import { NewConversationForm } from './NewConversationForm';
-import { NewTemplateForm } from './NewTemplateForm'; // Add this import
 import { RequestCount } from './RequestCount';
 import { generateChatResponse, ChatMessage as Message } from '../utils/openaiClient';
 import { saveChatRecord, getChatRecords, deleteChatRecord, clearChatRecords, ChatRecord, saveChatConversation, getChatConversations, deleteChatConversation, clearChatConversations, ChatConversation, PromptTemplate, savePromptTemplate, getPromptTemplates, deletePromptTemplate } from '../utils/localStorage';
@@ -218,14 +217,11 @@ export const ChatInterface: React.FC = () => {
             setDeleteMessageId(null);
             setShowDeletePopup(false);
         } else if (deleteConversationId) {
-<<<<<<< HEAD
             // Delete all chat records associated with the conversation
             const records = getChatRecords().filter(record => record.conversationId === deleteConversationId);
             records.forEach(record => deleteChatRecord(record.id));
 
             // Delete the conversation
-=======
->>>>>>> 2e82907 (Added code for prompt templates)
             deleteChatConversation(deleteConversationId);
 
             // Update state
@@ -261,13 +257,6 @@ export const ChatInterface: React.FC = () => {
     const handleDeleteTemplateClick = (templateId: string) => {
         deletePromptTemplate(templateId);
         setTemplates(getPromptTemplates());
-    };
-
-    const closeNewTemplateForm = (newTemplate?: PromptTemplate) => {
-        if (newTemplate) {
-            setTemplates(prev => [...prev, newTemplate]);
-        }
-        setShowNewTemplateForm(false);
     };
 
     return (
@@ -329,14 +318,6 @@ export const ChatInterface: React.FC = () => {
                 <NewConversationForm
                     onClose={() => setShowNewConversationForm(false)}
                     onSave={closeNewConversationForm}
-                    username={settings.username}
-                />
-            )}
-
-            {showNewTemplateForm && (
-                <NewTemplateForm
-                    onClose={() => setShowNewTemplateForm(false)}
-                    onSave={closeNewTemplateForm}
                     username={settings.username}
                 />
             )}
