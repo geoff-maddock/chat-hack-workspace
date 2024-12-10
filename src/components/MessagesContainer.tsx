@@ -32,6 +32,7 @@ export const MessagesContainer: React.FC<MessagesContainerProps> = ({
     conversations,
     handleSettingsClick
 }) => {
+
     return (
         <div className="flex flex-col flex-1 w-2/5" ref={chatContainerRef} onScroll={handleScroll}>
             <SettingsBar
@@ -51,6 +52,14 @@ export const MessagesContainer: React.FC<MessagesContainerProps> = ({
                             id={message.id}
                             handleDeleteMessageClick={handleDeleteMessageClick}
                         />
+                        {message.role === 'user' &&
+                            <button
+                                onClick={() => handleDeleteMessageClick(message.id)}
+                                className="absolute top-0 right-0 mt-2 mr-2 text-red-500 hover:text-red-700"
+                            >
+                                🗑️
+                            </button>
+                        }
                     </div>
                 ))}
 
