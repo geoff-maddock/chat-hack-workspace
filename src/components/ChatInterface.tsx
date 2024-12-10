@@ -1,8 +1,10 @@
 // src/components/ChatInterface.tsx
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { ChatMessage } from './ChatMessage';
-import { ChatInput } from './ChatInput';
+import { ConversationsList } from './ConversationsList';
+import { MessagesContainer } from './MessagesContainer';
+import { DeleteConfirmationPopup } from './DeleteConfirmationPopup';
+import { ClearConfirmationPopup } from './ClearConfirmationPopup';
 import { SettingsForm } from './SettingsForm';
 import { EditConversationForm } from './EditConversationForm';
 import { NewConversationForm } from './NewConversationForm';
@@ -16,7 +18,7 @@ export const ChatInterface: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isUserScrolling, setIsUserScrolling] = useState(false); // Track user scrolling
     const [showDeletePopup, setShowDeletePopup] = useState(false);
-    const [deleteConversationId, setDeleteConversationId] = useState<string | null>(null);
+    const [deleteMessageId, setDeleteMessageId] = useState<string | null>(null); // Track message to be deleted
     const [showClearPopup, setShowClearPopup] = useState(false);
     const [showSettingsForm, setShowSettingsForm] = useState(false);
     const [showEditConversationForm, setShowEditConversationForm] = useState(false);
@@ -37,12 +39,11 @@ export const ChatInterface: React.FC = () => {
         scrollToBottom();
     }, [scrollToBottom, messagesEndRef, settings.conversationId, conversations.length]);
 
-    // Load chat records and conversations from local storage on initialization
     useEffect(() => {
         const records = getChatRecords().filter(record => record.conversationId === settings.conversationId);
         const loadedMessages: Message[] = records.flatMap(record => [
-            { role: 'user' as const, content: record.request },
-            { role: 'assistant' as const, content: record.response }
+            { role: 'user' as const, content: record.request, timestamp: record.timestamp, username: record.username, model: record.model, id: record.id },
+            { role: 'assistant' as const, content: record.response, timestamp: record.timestamp, username: record.username, model: record.model, id: record.id }
         ]);
         setMessages(loadedMessages);
 
@@ -71,7 +72,7 @@ export const ChatInterface: React.FC = () => {
         if (!userMessage.trim()) return;
 
         const currentSettings = getSettings();
-        const newUserMessage: Message = { role: 'user', content: userMessage };
+        const newUserMessage: Message = { role: 'user', content: userMessage, timestamp: new Date().toISOString(), username: currentSettings.username, model: currentSettings.model, id: uuidv4().toString() };
         setMessages(prev => [...prev, newUserMessage]);
         setIsLoading(true);
 
@@ -82,11 +83,11 @@ export const ChatInterface: React.FC = () => {
                 newUserMessage
             ], currentSettings.model);
 
-            const newAIMessage: Message = { role: 'assistant', content: response };
+            const newAIMessage: Message = { role: 'assistant', content: response, timestamp: new Date().toISOString(), username: currentSettings.username, model: currentSettings.model, id: uuidv4().toString() };
             setMessages(prev => [...prev, newAIMessage]);
 
             const chatRecord: ChatRecord = {
-                id: uuidv4().toString(),
+                id: newUserMessage.id,
                 request: userMessage,
                 response: response,
                 timestamp: new Date().toISOString(),
@@ -100,7 +101,7 @@ export const ChatInterface: React.FC = () => {
             console.error('Error:', error);
             setMessages(prev => [
                 ...prev,
-                { role: 'assistant', content: 'Sorry, I encountered an error while processing your request.' }
+                { role: 'assistant', content: 'Sorry, I encountered an error while processing your request.', timestamp: new Date().toISOString(), username: currentSettings.username, model: currentSettings.model, id: uuidv4().toString() }
             ]);
         } finally {
             setIsLoading(false);
@@ -145,6 +146,14 @@ export const ChatInterface: React.FC = () => {
         setShowSettingsForm(true);
     };
 
+    const closeSettingsForm = (newSettings?: Settings) => {
+        if (newSettings) {
+            setSettings(newSettings);
+            saveSettings(newSettings);
+        }
+        setShowSettingsForm(false);
+    };
+
     const handleEditConversationClick = (conversationId: string) => {
         setSelectedConversationId(conversationId);
         setShowEditConversationForm(true);
@@ -178,200 +187,73 @@ export const ChatInterface: React.FC = () => {
     const handleLoadConversation = (conversationId: string) => {
         const records = getChatRecords().filter(record => record.conversationId === conversationId);
         const loadedMessages: Message[] = records.flatMap(record => [
-            { role: 'user', content: record.request },
-            { role: 'assistant', content: record.response }
+            { role: 'user', content: record.request, timestamp: record.timestamp, username: record.username, model: record.model, id: record.id },
+            { role: 'assistant', content: record.response, timestamp: record.timestamp, username: record.username, model: record.model, id: record.id }
         ]);
         setMessages(loadedMessages);
         setSettings(prev => ({ ...prev, conversationId }));
         saveSettings({ ...settings, conversationId });
     };
 
-    const handleDeleteClick = (conversationId: string) => {
-        setDeleteConversationId(conversationId);
+    const handleDeleteClick = (messageId: string) => {
+        setDeleteMessageId(messageId);
         setShowDeletePopup(true);
     };
 
     const confirmDelete = () => {
-        if (deleteConversationId) {
-            deleteChatConversation(deleteConversationId);
-            const updatedConversations = conversations.filter(conv => conv.id !== deleteConversationId);
-            setConversations(updatedConversations);
-            localStorage.setItem('chat_conversations', JSON.stringify(updatedConversations));
-
-            const updatedMessages = getChatRecords().filter(record => record.conversationId !== deleteConversationId);
-            localStorage.setItem('chat_records', JSON.stringify(updatedMessages));
-            setMessages(updatedMessages.flatMap(record => [
-                { role: 'user', content: record.request },
-                { role: 'assistant', content: record.response }
-            ]));
-
-            setDeleteConversationId(null);
+        if (deleteMessageId) {
+            deleteChatRecord(deleteMessageId);
+            const updatedMessages = messages.filter(message => message.id !== deleteMessageId);
+            setMessages(updatedMessages);
+            setDeleteMessageId(null);
             setShowDeletePopup(false);
         }
     };
 
     const cancelDelete = () => {
-        setDeleteConversationId(null);
+        setDeleteMessageId(null);
         setShowDeletePopup(false);
     };
 
     return (
         <div className="flex h-[85vh] bg-white rounded-xl shadow-lg overflow-hidden">
-            {/* Chat Interface */}
-            <div className="flex flex-col flex-1" ref={chatContainerRef} onScroll={handleScroll}>
-                {/* Settings Bar */}
-                <div className="flex items-center justify-between p-4 bg-gray-100 border-b border-gray-200">
-                    <span>
-                        <p className="font-bold">Conversation:</p> {settings.conversationId ? getChatConversations().find(conv => conv.id === settings.conversationId)?.title || '<none>' : '<none>'}
-                    </span>
-                    <span><p className="font-bold">Model:</p> {settings.model}</span>
-                    <button
-                        className="p-2 bg-gray-500 text-white rounded-full shadow-lg"
-                        onClick={handleSettingsClick}
-                        title="Open Settings"
-                    >
-                        ⚙️
-                    </button>
-                </div>
+            <MessagesContainer
+                messages={messages}
+                isLoading={isLoading}
+                handleSendMessage={handleSendMessage}
+                handleDeleteClick={handleDeleteClick}
+                chatContainerRef={chatContainerRef}
+                messagesEndRef={messagesEndRef}
+                handleScroll={handleScroll}
+                settings={settings}
+                conversations={conversations}
+                handleSettingsClick={handleSettingsClick}
+            />
 
-                {/* Messages Container */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    {messages.map((message, index) => (
-                        <div key={index} className="relative">
-                            <ChatMessage
-                                content={message.content}
-                                role={message.role}
-                                model={settings.model}
-                                username={settings.username}
-                                timestamp={new Date().toISOString()}
-                            />
-                            {index % 2 === 0 && (
-                                <button
-                                    className="absolute top-0 right-0 p-2 text-red-500"
-                                    onClick={() => {
-                                        const filteredRecords = getChatRecords().filter(record => record.conversationId === settings.conversationId);
-                                        handleDeleteClick(filteredRecords[Math.floor(index / 2)].id);
-                                    }}
-                                >
-                                    🗑️
-                                </button>
-                            )}
-                        </div>
-                    ))}
+            <ConversationsList
+                conversations={conversations}
+                handleLoadConversation={handleLoadConversation}
+                handleEditConversationClick={handleEditConversationClick}
+                handleDeleteClick={handleDeleteClick}
+                handleNewConversationClick={handleNewConversationClick}
+            />
 
-                    {/* Loading indicator */}
-                    {isLoading && (
-                        <div className="flex items-center justify-center space-x-2">
-                            <div className="animate-bounce">•</div>
-                            <div className="animate-bounce delay-100">•</div>
-                            <div className="animate-bounce delay-200">•</div>
-                        </div>
-                    )}
-
-                    {/* Auto-scroll anchor */}
-                    <div ref={messagesEndRef} />
-                </div>
-
-                {/* Input Area */}
-                <div className="border-t border-gray-200">
-                    <ChatInput
-                        onSendMessage={handleSendMessage}
-                        disabled={isLoading}
-                    />
-                </div>
-            </div>
-
-            {/* Conversations Section */}
-            <div className="w-1/3 flex flex-col bg-gray-50 border-l border-gray-200">
-                <div className="flex items-center justify-between p-4 bg-gray-100 border-b border-gray-200">
-                    <h2 className="text-xl font-bold">Conversations</h2>
-                    <button
-                        className="p-2 bg-green-500 text-white rounded-full shadow-lg"
-                        onClick={handleNewConversationClick}
-                        title="New Conversation"
-                    >
-                        ➕
-                    </button>
-                </div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    {conversations.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(conversation => (
-                        <div key={conversation.id} className="p-4 bg-white rounded-lg shadow">
-                            <p className="font-bold">{conversation.title}</p>
-                            <p className="text-xs text-gray-500">Username: {conversation.username}</p>
-                            <p className="text-xs text-gray-500">Created: {new Date(conversation.created_at).toLocaleString()}</p>
-                            <button
-                                className="mt-2 p-2 bg-blue-500 text-white rounded-full shadow-lg"
-                                onClick={() => handleLoadConversation(conversation.id)}
-                            >
-                                Load
-                            </button>
-                            <button
-                                className="mt-2 ml-2 p-2 bg-gray-500 text-white rounded-full shadow-lg"
-                                onClick={() => handleEditConversationClick(conversation.id)}
-                            >
-                                ✏️
-                            </button>
-                            <button
-                                className="mt-2 ml-2 p-2 bg-red-500 text-white rounded-full shadow-lg"
-                                onClick={() => handleDeleteClick(conversation.id)}
-                            >
-                                🗑️
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Delete Confirmation Popup */}
             {showDeletePopup && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg">
-                        <p>Are you sure you want to delete this conversation and all related chats?</p>
-                        <div className="mt-4 flex justify-end space-x-2">
-                            <button
-                                className="bg-red-500 text-white px-4 py-2 rounded"
-                                onClick={confirmDelete}
-                            >
-                                Yes
-                            </button>
-                            <button
-                                className="bg-gray-300 px-4 py-2 rounded"
-                                onClick={cancelDelete}
-                            >
-                                No
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <DeleteConfirmationPopup
+                    confirmDelete={confirmDelete}
+                    cancelDelete={cancelDelete}
+                />
             )}
 
-            {/* Clear Confirmation Popup */}
             {showClearPopup && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg">
-                        <p>Are you sure you want to clear all chat records?</p>
-                        <div className="mt-4 flex justify-end space-x-2">
-                            <button
-                                className="bg-red-500 text-white px-4 py-2 rounded"
-                                onClick={confirmClear}
-                            >
-                                Yes
-                            </button>
-                            <button
-                                className="bg-gray-300 px-4 py-2 rounded"
-                                onClick={cancelClear}
-                            >
-                                No
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ClearConfirmationPopup
+                    confirmClear={confirmClear}
+                    cancelClear={cancelClear}
+                />
             )}
 
-            {/* Settings Form */}
             {showSettingsForm && <SettingsForm onClose={() => setShowSettingsForm(false)} onSave={closeSettingsForm} />}
 
-            {/* Edit Conversation Form */}
             {showEditConversationForm && selectedConversationId && (
                 <EditConversationForm
                     conversationId={selectedConversationId}
@@ -380,7 +262,6 @@ export const ChatInterface: React.FC = () => {
                 />
             )}
 
-            {/* New Conversation Form */}
             {showNewConversationForm && (
                 <NewConversationForm
                     onClose={() => setShowNewConversationForm(false)}
@@ -389,7 +270,6 @@ export const ChatInterface: React.FC = () => {
                 />
             )}
 
-            {/* Clear All Button */}
             <button
                 className="fixed bottom-4 right-4 p-4 bg-red-500 text-white rounded-full shadow-lg"
                 onClick={handleClearClick}
@@ -398,7 +278,6 @@ export const ChatInterface: React.FC = () => {
                 🗑️
             </button>
 
-            {/* Request Count */}
             <RequestCount />
         </div>
     );
