@@ -8,7 +8,7 @@ import { EditConversationForm } from './EditConversationForm';
 import { NewConversationForm } from './NewConversationForm';
 import { RequestCount } from './RequestCount';
 import { generateChatResponse, ChatMessage as Message } from '../utils/openaiClient';
-import { saveChatRecord, getChatRecords, deleteChatRecord, clearChatRecords, ChatRecord, saveChatConversation, getChatConversations, ChatConversation } from '../utils/localStorage';
+import { saveChatRecord, getChatRecords, deleteChatRecord, clearChatRecords, ChatRecord, saveChatConversation, getChatConversations, deleteChatConversation, clearChatConversations, ChatConversation } from '../utils/localStorage';
 import { getSettings, saveSettings, Settings } from '../utils/settings';
 
 export const ChatInterface: React.FC = () => {
@@ -16,7 +16,7 @@ export const ChatInterface: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isUserScrolling, setIsUserScrolling] = useState(false); // Track user scrolling
     const [showDeletePopup, setShowDeletePopup] = useState(false);
-    const [deleteRecordId, setDeleteRecordId] = useState<string | null>(null);
+    const [deleteConversationId, setDeleteConversationId] = useState<string | null>(null);
     const [showClearPopup, setShowClearPopup] = useState(false);
     const [showSettingsForm, setShowSettingsForm] = useState(false);
     const [showEditConversationForm, setShowEditConversationForm] = useState(false);
@@ -33,11 +33,9 @@ export const ChatInterface: React.FC = () => {
         }
     }, [isUserScrolling]);
 
-
     useEffect(() => {
         scrollToBottom();
     }, [scrollToBottom, messagesEndRef, settings.conversationId, conversations.length]);
-
 
     // Load chat records and conversations from local storage on initialization
     useEffect(() => {
@@ -60,49 +58,33 @@ export const ChatInterface: React.FC = () => {
                 description: '',
                 created_at: new Date().toISOString(),
                 username: settings.username,
-                spaceId: null // Add this line
+                spaceId: null
             };
             saveChatConversation(newConversation);
             setSettings(prev => ({ ...prev, conversationId: newConversation.id }));
             saveSettings({ ...settings, conversationId: newConversation.id });
-            setConversations(prev => [...prev, newConversation]);
+            setConversations([newConversation]);
         }
     }, [settings.conversationId]);
 
-
     const handleSendMessage = useCallback(async (userMessage: string) => {
-
-        console.log('handleSendMessage was called ');
         if (!userMessage.trim()) return;
 
-        // Log the user message to the console
-        console.log('User message:', userMessage);
-
-        // Load current settings
         const currentSettings = getSettings();
-
-        // Add user message
         const newUserMessage: Message = { role: 'user', content: userMessage };
         setMessages(prev => [...prev, newUserMessage]);
         setIsLoading(true);
 
         try {
-            console.log('Sending request to API with messages and model:', currentSettings.model);
-            // Get AI response
             const response = await generateChatResponse([
                 { role: 'system', content: currentSettings.systemPrompt },
                 ...messages,
                 newUserMessage
             ], currentSettings.model);
 
-            // Add AI message
             const newAIMessage: Message = { role: 'assistant', content: response };
-            setMessages(prev => [
-                ...prev,
-                newAIMessage
-            ]);
+            setMessages(prev => [...prev, newAIMessage]);
 
-            // Save chat record to local storage
             const chatRecord: ChatRecord = {
                 id: uuidv4().toString(),
                 request: userMessage,
@@ -118,10 +100,7 @@ export const ChatInterface: React.FC = () => {
             console.error('Error:', error);
             setMessages(prev => [
                 ...prev,
-                {
-                    role: 'assistant',
-                    content: 'Sorry, I encountered an error while processing your request.'
-                }
+                { role: 'assistant', content: 'Sorry, I encountered an error while processing your request.' }
             ]);
         } finally {
             setIsLoading(false);
@@ -134,7 +113,6 @@ export const ChatInterface: React.FC = () => {
             setIsUserScrolling(scrollTop + clientHeight < scrollHeight);
         }
     };
-
 
     const handleClearClick = () => {
         setShowClearPopup(true);
@@ -165,14 +143,6 @@ export const ChatInterface: React.FC = () => {
 
     const handleSettingsClick = () => {
         setShowSettingsForm(true);
-    };
-
-    const closeSettingsForm = (newSettings?: Settings) => {
-        if (newSettings) {
-            setSettings(newSettings);
-            saveSettings(newSettings);
-        }
-        setShowSettingsForm(false);
     };
 
     const handleEditConversationClick = (conversationId: string) => {
@@ -216,30 +186,32 @@ export const ChatInterface: React.FC = () => {
         saveSettings({ ...settings, conversationId });
     };
 
-    const handleDeleteClick = (id: string) => {
-        console.log('delete click');
-        console.log('confirm delete of record:', id);
-        setDeleteRecordId(id);
+    const handleDeleteClick = (conversationId: string) => {
+        setDeleteConversationId(conversationId);
         setShowDeletePopup(true);
     };
 
     const confirmDelete = () => {
-        console.log('confirm delete of record:', deleteRecordId);
-        if (deleteRecordId) {
-            console.log('confirm delete');
-            deleteChatRecord(deleteRecordId);
-            const updatedMessages = getChatRecords().filter(record => record.conversationId === settings.conversationId).flatMap(record => [
-                { role: 'user' as const, content: record.request },
-                { role: 'assistant' as const, content: record.response }
-            ]);
-            setMessages(updatedMessages);
-            setDeleteRecordId(null);
+        if (deleteConversationId) {
+            deleteChatConversation(deleteConversationId);
+            const updatedConversations = conversations.filter(conv => conv.id !== deleteConversationId);
+            setConversations(updatedConversations);
+            localStorage.setItem('chat_conversations', JSON.stringify(updatedConversations));
+
+            const updatedMessages = getChatRecords().filter(record => record.conversationId !== deleteConversationId);
+            localStorage.setItem('chat_records', JSON.stringify(updatedMessages));
+            setMessages(updatedMessages.flatMap(record => [
+                { role: 'user', content: record.request },
+                { role: 'assistant', content: record.response }
+            ]));
+
+            setDeleteConversationId(null);
             setShowDeletePopup(false);
         }
     };
 
     const cancelDelete = () => {
-        setDeleteRecordId(null);
+        setDeleteConversationId(null);
         setShowDeletePopup(false);
     };
 
@@ -339,6 +311,12 @@ export const ChatInterface: React.FC = () => {
                             >
                                 ✏️
                             </button>
+                            <button
+                                className="mt-2 ml-2 p-2 bg-red-500 text-white rounded-full shadow-lg"
+                                onClick={() => handleDeleteClick(conversation.id)}
+                            >
+                                🗑️
+                            </button>
                         </div>
                     ))}
                 </div>
@@ -348,7 +326,7 @@ export const ChatInterface: React.FC = () => {
             {showDeletePopup && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
                     <div className="bg-white p-6 rounded-lg shadow-lg">
-                        <p>Are you sure you want to delete this chat record?</p>
+                        <p>Are you sure you want to delete this conversation and all related chats?</p>
                         <div className="mt-4 flex justify-end space-x-2">
                             <button
                                 className="bg-red-500 text-white px-4 py-2 rounded"
