@@ -1,14 +1,18 @@
 // src/components/ChatInterface.tsx
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { ChatMessage } from './ChatMessage';
-import { ChatInput } from './ChatInput';
+import { ConversationList } from './ConversationList';
+import { MessagesContainer } from './MessagesContainer';
+import { PromptTemplateList } from './PromptTemplateList';
+import { DeleteConfirmationPopup } from './DeleteConfirmationPopup';
+import { ClearConfirmationPopup } from './ClearConfirmationPopup';
 import { SettingsForm } from './SettingsForm';
 import { EditConversationForm } from './EditConversationForm';
 import { NewConversationForm } from './NewConversationForm';
+import { NewTemplateForm } from './NewTemplateForm'; // Add this import
 import { RequestCount } from './RequestCount';
 import { generateChatResponse, ChatMessage as Message } from '../utils/openaiClient';
-import { saveChatRecord, getChatRecords, deleteChatRecord, clearChatRecords, ChatRecord, saveChatConversation, getChatConversations, deleteChatConversation, clearChatConversations, ChatConversation } from '../utils/localStorage';
+import { saveChatRecord, getChatRecords, deleteChatRecord, clearChatRecords, ChatRecord, saveChatConversation, getChatConversations, deleteChatConversation, clearChatConversations, ChatConversation, PromptTemplate, savePromptTemplate, getPromptTemplates, deletePromptTemplate } from '../utils/localStorage';
 import { getSettings, saveSettings, Settings } from '../utils/settings';
 
 export const ChatInterface: React.FC = () => {
@@ -16,13 +20,16 @@ export const ChatInterface: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isUserScrolling, setIsUserScrolling] = useState(false); // Track user scrolling
     const [showDeletePopup, setShowDeletePopup] = useState(false);
-    const [deleteConversationId, setDeleteConversationId] = useState<string | null>(null);
+    const [deleteMessageId, setDeleteMessageId] = useState<string | null>(null); // Track message to be deleted
+    const [deleteConversationId, setDeleteConversationId] = useState<string | null>(null); // Track conversation to be deleted
     const [showClearPopup, setShowClearPopup] = useState(false);
     const [showSettingsForm, setShowSettingsForm] = useState(false);
     const [showEditConversationForm, setShowEditConversationForm] = useState(false);
     const [showNewConversationForm, setShowNewConversationForm] = useState(false);
+    const [showNewTemplateForm, setShowNewTemplateForm] = useState(false); // Track new template form visibility
     const [settings, setSettings] = useState<Settings>(getSettings());
     const [conversations, setConversations] = useState<ChatConversation[]>(getChatConversations());
+    const [templates, setTemplates] = useState<PromptTemplate[]>(getPromptTemplates());
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(settings.conversationId);
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -37,7 +44,6 @@ export const ChatInterface: React.FC = () => {
         scrollToBottom();
     }, [scrollToBottom, messagesEndRef, settings.conversationId, conversations.length]);
 
-    // Load chat records and conversations from local storage on initialization
     useEffect(() => {
         const records = getChatRecords().filter(record => record.conversationId === settings.conversationId);
         const loadedMessages: Message[] = records.flatMap(record => [
@@ -145,6 +151,14 @@ export const ChatInterface: React.FC = () => {
         setShowSettingsForm(true);
     };
 
+    const closeSettingsForm = (newSettings?: Settings) => {
+        if (newSettings) {
+            setSettings(newSettings);
+            saveSettings(newSettings);
+        }
+        setShowSettingsForm(false);
+    };
+
     const handleEditConversationClick = (conversationId: string) => {
         setSelectedConversationId(conversationId);
         setShowEditConversationForm(true);
@@ -186,13 +200,24 @@ export const ChatInterface: React.FC = () => {
         saveSettings({ ...settings, conversationId });
     };
 
+    const handleDeleteMessageClick = (messageId: string) => {
+        setDeleteMessageId(messageId);
+        setShowDeletePopup(true);
+    };
+
     const handleDeleteClick = (conversationId: string) => {
         setDeleteConversationId(conversationId);
         setShowDeletePopup(true);
     };
 
     const confirmDelete = () => {
-        if (deleteConversationId) {
+        if (deleteMessageId) {
+            deleteChatRecord(deleteMessageId);
+            const updatedMessages = messages.filter(message => message.id !== deleteMessageId);
+            setMessages(updatedMessages);
+            setDeleteMessageId(null);
+            setShowDeletePopup(false);
+        } else if (deleteConversationId) {
             deleteChatConversation(deleteConversationId);
             const updatedConversations = conversations.filter(conv => conv.id !== deleteConversationId);
             setConversations(updatedConversations);
@@ -211,167 +236,78 @@ export const ChatInterface: React.FC = () => {
     };
 
     const cancelDelete = () => {
+        setDeleteMessageId(null);
         setDeleteConversationId(null);
         setShowDeletePopup(false);
     };
 
+    const handleAddTemplateClick = () => {
+        setShowNewTemplateForm(true);
+    };
+
+    const handleEditTemplateClick = (templateId: string) => {
+        // Implement edit template logic
+    };
+
+    const handleDeleteTemplateClick = (templateId: string) => {
+        deletePromptTemplate(templateId);
+        setTemplates(getPromptTemplates());
+    };
+
+    const closeNewTemplateForm = (newTemplate?: PromptTemplate) => {
+        if (newTemplate) {
+            setTemplates(prev => [...prev, newTemplate]);
+        }
+        setShowNewTemplateForm(false);
+    };
+
     return (
         <div className="flex h-[85vh] bg-white rounded-xl shadow-lg overflow-hidden">
-            {/* Chat Interface */}
-            <div className="flex flex-col flex-1" ref={chatContainerRef} onScroll={handleScroll}>
-                {/* Settings Bar */}
-                <div className="flex items-center justify-between p-4 bg-gray-100 border-b border-gray-200">
-                    <span>
-                        <p className="font-bold">Conversation:</p> {settings.conversationId ? getChatConversations().find(conv => conv.id === settings.conversationId)?.title || '<none>' : '<none>'}
-                    </span>
-                    <span><p className="font-bold">Model:</p> {settings.model}</span>
-                    <button
-                        className="p-2 bg-gray-500 text-white rounded-full shadow-lg"
-                        onClick={handleSettingsClick}
-                        title="Open Settings"
-                    >
-                        ⚙️
-                    </button>
-                </div>
+            <PromptTemplateList
+                templates={templates}
+                handleLoadTemplate={handleSendMessage}
+                handleEditTemplateClick={handleEditTemplateClick}
+                handleDeleteTemplateClick={handleDeleteTemplateClick}
+                handleNewTemplateClick={handleAddTemplateClick}
+            />
 
-                {/* Messages Container */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    {messages.map((message, index) => (
-                        <div key={index} className="relative">
-                            <ChatMessage
-                                content={message.content}
-                                role={message.role}
-                                model={settings.model}
-                                username={settings.username}
-                                timestamp={new Date().toISOString()}
-                            />
-                            {index % 2 === 0 && (
-                                <button
-                                    className="absolute top-0 right-0 p-2 text-red-500"
-                                    onClick={() => {
-                                        const filteredRecords = getChatRecords().filter(record => record.conversationId === settings.conversationId);
-                                        handleDeleteClick(filteredRecords[Math.floor(index / 2)].id);
-                                    }}
-                                >
-                                    🗑️
-                                </button>
-                            )}
-                        </div>
-                    ))}
+            <MessagesContainer
+                messages={messages}
+                isLoading={isLoading}
+                handleSendMessage={handleSendMessage}
+                handleDeleteMessageClick={handleDeleteMessageClick}
+                chatContainerRef={chatContainerRef}
+                messagesEndRef={messagesEndRef}
+                handleScroll={handleScroll}
+                settings={settings}
+                conversations={conversations}
+                handleSettingsClick={handleSettingsClick}
+            />
 
-                    {/* Loading indicator */}
-                    {isLoading && (
-                        <div className="flex items-center justify-center space-x-2">
-                            <div className="animate-bounce">•</div>
-                            <div className="animate-bounce delay-100">•</div>
-                            <div className="animate-bounce delay-200">•</div>
-                        </div>
-                    )}
+            <ConversationList
+                conversations={conversations}
+                handleLoadConversation={handleLoadConversation}
+                handleEditConversationClick={handleEditConversationClick}
+                handleDeleteClick={handleDeleteClick}
+                handleNewConversationClick={handleNewConversationClick}
+            />
 
-                    {/* Auto-scroll anchor */}
-                    <div ref={messagesEndRef} />
-                </div>
-
-                {/* Input Area */}
-                <div className="border-t border-gray-200">
-                    <ChatInput
-                        onSendMessage={handleSendMessage}
-                        disabled={isLoading}
-                    />
-                </div>
-            </div>
-
-            {/* Conversations Section */}
-            <div className="w-1/3 flex flex-col bg-gray-50 border-l border-gray-200">
-                <div className="flex items-center justify-between p-4 bg-gray-100 border-b border-gray-200">
-                    <h2 className="text-xl font-bold">Conversations</h2>
-                    <button
-                        className="p-2 bg-green-500 text-white rounded-full shadow-lg"
-                        onClick={handleNewConversationClick}
-                        title="New Conversation"
-                    >
-                        ➕
-                    </button>
-                </div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    {conversations.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(conversation => (
-                        <div key={conversation.id} className="p-4 bg-white rounded-lg shadow">
-                            <p className="font-bold">{conversation.title}</p>
-                            <p className="text-xs text-gray-500">Username: {conversation.username}</p>
-                            <p className="text-xs text-gray-500">Created: {new Date(conversation.created_at).toLocaleString()}</p>
-                            <button
-                                className="mt-2 p-2 bg-blue-500 text-white rounded-full shadow-lg"
-                                onClick={() => handleLoadConversation(conversation.id)}
-                            >
-                                Load
-                            </button>
-                            <button
-                                className="mt-2 ml-2 p-2 bg-gray-500 text-white rounded-full shadow-lg"
-                                onClick={() => handleEditConversationClick(conversation.id)}
-                            >
-                                ✏️
-                            </button>
-                            <button
-                                className="mt-2 ml-2 p-2 bg-red-500 text-white rounded-full shadow-lg"
-                                onClick={() => handleDeleteClick(conversation.id)}
-                            >
-                                🗑️
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Delete Confirmation Popup */}
             {showDeletePopup && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg">
-                        <p>Are you sure you want to delete this conversation and all related chats?</p>
-                        <div className="mt-4 flex justify-end space-x-2">
-                            <button
-                                className="bg-red-500 text-white px-4 py-2 rounded"
-                                onClick={confirmDelete}
-                            >
-                                Yes
-                            </button>
-                            <button
-                                className="bg-gray-300 px-4 py-2 rounded"
-                                onClick={cancelDelete}
-                            >
-                                No
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <DeleteConfirmationPopup
+                    confirmDelete={confirmDelete}
+                    cancelDelete={cancelDelete}
+                />
             )}
 
-            {/* Clear Confirmation Popup */}
             {showClearPopup && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg">
-                        <p>Are you sure you want to clear all chat records?</p>
-                        <div className="mt-4 flex justify-end space-x-2">
-                            <button
-                                className="bg-red-500 text-white px-4 py-2 rounded"
-                                onClick={confirmClear}
-                            >
-                                Yes
-                            </button>
-                            <button
-                                className="bg-gray-300 px-4 py-2 rounded"
-                                onClick={cancelClear}
-                            >
-                                No
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ClearConfirmationPopup
+                    confirmClear={confirmClear}
+                    cancelClear={cancelClear}
+                />
             )}
 
-            {/* Settings Form */}
             {showSettingsForm && <SettingsForm onClose={() => setShowSettingsForm(false)} onSave={closeSettingsForm} />}
 
-            {/* Edit Conversation Form */}
             {showEditConversationForm && selectedConversationId && (
                 <EditConversationForm
                     conversationId={selectedConversationId}
@@ -380,7 +316,6 @@ export const ChatInterface: React.FC = () => {
                 />
             )}
 
-            {/* New Conversation Form */}
             {showNewConversationForm && (
                 <NewConversationForm
                     onClose={() => setShowNewConversationForm(false)}
@@ -389,7 +324,14 @@ export const ChatInterface: React.FC = () => {
                 />
             )}
 
-            {/* Clear All Button */}
+            {showNewTemplateForm && (
+                <NewTemplateForm
+                    onClose={() => setShowNewTemplateForm(false)}
+                    onSave={closeNewTemplateForm}
+                    username={settings.username}
+                />
+            )}
+
             <button
                 className="fixed bottom-4 right-4 p-4 bg-red-500 text-white rounded-full shadow-lg"
                 onClick={handleClearClick}
@@ -398,7 +340,6 @@ export const ChatInterface: React.FC = () => {
                 🗑️
             </button>
 
-            {/* Request Count */}
             <RequestCount />
         </div>
     );
