@@ -4,8 +4,8 @@ This project is a workspace app for building and enriching data with OpenAI API 
 Create and refine prompts, pull in data from other sources, query the LLM, and refine the responses.
 
 ## Getting Started
-- Pull down repository
-- cp .env.dist .env
+- Clone the repository
+- Copy the environment template `cp .env.dist .env`
   - Add your OpenAI API key and URL to the .env file
 - Run `npm install` install dependencies
 - Run `npm run dev` to start the development server
