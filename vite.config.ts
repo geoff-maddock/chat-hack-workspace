@@ -17,6 +17,7 @@ async function handleProxyRequest(req: IncomingMessage, res: ServerResponse, ret
   }
 
   req.on('end', async () => {
+    // circuit break to prevent calling the same endpoint too many times
     proxyCount++;
     if (proxyCount > 1) {
       console.log(`Proxy request ${proxyCount} for ${req.url}`);

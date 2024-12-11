@@ -7,9 +7,10 @@ interface NewTemplateFormProps {
     onClose: () => void;
     onSave: (template: PromptTemplate) => void;
     username: string;
+    reloadTemplates: () => void; // Add this prop
 }
 
-export const NewTemplateForm: React.FC<NewTemplateFormProps> = ({ onClose, onSave, username }) => {
+export const NewTemplateForm: React.FC<NewTemplateFormProps> = ({ onClose, onSave, username, reloadTemplates }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [prompt, setPrompt] = useState('');
@@ -27,12 +28,13 @@ export const NewTemplateForm: React.FC<NewTemplateFormProps> = ({ onClose, onSav
         };
         savePromptTemplate(newTemplate);
         onSave(newTemplate);
+        reloadTemplates(); // Call the reload function
         onClose();
     };
 
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-1/3"> {/* Adjusted width */}
+            <div className="bg-white p-6 rounded-lg shadow-lg w-1/3">
                 <h2 className="text-xl font-bold mb-4">New Template</h2>
                 <form onSubmit={handleSubmit}>
                     <div className="mb-4">
@@ -58,24 +60,12 @@ export const NewTemplateForm: React.FC<NewTemplateFormProps> = ({ onClose, onSav
                         <textarea
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
-                            rows={10}
                             className="w-full p-2 border rounded"
                         />
                     </div>
-                    <div className="flex justify-end space-x-2">
-                        <button
-                            type="button"
-                            className="bg-gray-300 px-4 py-2 rounded"
-                            onClick={onClose}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="bg-blue-500 text-white px-4 py-2 rounded"
-                        >
-                            Save
-                        </button>
+                    <div className="flex justify-end">
+                        <button type="button" onClick={onClose} className="mr-4 bg-gray-500 text-white p-2 rounded">Cancel</button>
+                        <button type="submit" className="bg-blue-500 text-white p-2 rounded">Save</button>
                     </div>
                 </form>
             </div>

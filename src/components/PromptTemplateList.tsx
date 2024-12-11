@@ -46,7 +46,7 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
     };
 
     return (
-        <div className="w-1/3 flex flex-col bg-gray-50 border-r border-gray-200">
+        <div className="w-1/4 flex flex-col bg-gray-50 border-r border-gray-200">
             <div className="flex items-center justify-between p-4 bg-gray-100 border-b border-gray-200">
                 <h2 className="text-xl font-bold">Prompt Templates</h2>
                 <button

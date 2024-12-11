@@ -4,7 +4,11 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
+// replace these with stored settings
 const model = "gpt-4o";
+const max_tokens = 300;
+const temperature = 0.7;
+
 const openai = new OpenAI({
     apiKey: process.env.VITE_OPENAI_API_KEY,
     baseURL: process.env.VITE_OPENAI_API_BASE_URL
@@ -20,7 +24,6 @@ export async function handler(req: Request) {
 
     try {
         const { messages } = await req.json();
-        console.log('Parsed messages:', messages);
 
         if (!messages || !Array.isArray(messages)) {
             console.warn('Invalid input: Messages must be an array');
@@ -37,12 +40,17 @@ export async function handler(req: Request) {
         }
 
         console.log('Sending request to OpenAI API with model:', model);
+        console.log('Messages:', messages);
+        console.log('Max Tokens:', max_tokens);
+        console.log('Temperature:', temperature);
+
+
         console.log('---')
         const response = await openai.chat.completions.create({
             model: model,
             messages: messages,
-            max_tokens: 300,
-            temperature: 0.7
+            max_tokens: max_tokens,
+            temperature: temperature
         });
 
         console.log('Received response from OpenAI API:', response);
