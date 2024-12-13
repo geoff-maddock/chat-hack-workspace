@@ -1,36 +1,46 @@
 // src/components/PromptTemplateList.tsx
 import React, { useState } from 'react';
-import { PromptTemplate, getPromptTemplates, deletePromptTemplate } from '../utils/localStorage';
+import { PromptTemplate } from '../utils/localStorage';
 import { NewTemplateForm } from './NewTemplateForm';
 import { EditTemplateForm } from './EditTemplateForm';
 import { getSettings, saveSettings } from '../utils/settings';
 
 interface PromptTemplateListProps {
     templates: PromptTemplate[];
-    handleLoadTemplate: (templateId: string) => void;
-    handleEditTemplateClick: (templateId: string) => void;
+    setTemplates: React.Dispatch<React.SetStateAction<PromptTemplate[]>>;
     handleDeleteTemplateClick: (templateId: string) => void;
-    handleNewTemplateClick: () => void;
+    handleNewTemplateSave: (newTemplate: PromptTemplate) => void;
+    getPromptTemplates: () => PromptTemplate[]; // Add this prop
 }
 
 export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
     templates,
-    handleLoadTemplate,
-    handleEditTemplateClick,
+    setTemplates,
     handleDeleteTemplateClick,
-    handleNewTemplateClick
+    handleNewTemplateSave,
+    getPromptTemplates
 }) => {
     const [showNewTemplateForm, setShowNewTemplateForm] = useState(false);
     const [showEditTemplateForm, setShowEditTemplateForm] = useState(false);
     const [currentTemplateId, setCurrentTemplateId] = useState<string | null>(null);
 
-    const handleNewTemplateSave = (newTemplate: PromptTemplate) => {
-        handleNewTemplateClick();
+    const handleNewTemplateSaveInternal = (newTemplate?: PromptTemplate) => {
+        if (newTemplate) {
+            handleNewTemplateSave(newTemplate);
+        }
         setShowNewTemplateForm(false);
     };
 
     const handleEditTemplateSave = (updatedTemplate: PromptTemplate) => {
-        handleEditTemplateClick(updatedTemplate.id);
+        console.log('updatedTemplate', updatedTemplate);
+
+        if (updatedTemplate) {
+            const updatedTemplates = templates.map(temp =>
+                temp.id === updatedTemplate.id ? updatedTemplate : temp
+            );
+            setTemplates(updatedTemplates);
+            localStorage.setItem('prompt_templates', JSON.stringify(updatedTemplates));
+        }
         setShowEditTemplateForm(false);
     };
 
@@ -89,8 +99,9 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
             {showNewTemplateForm && (
                 <NewTemplateForm
                     onClose={() => setShowNewTemplateForm(false)}
-                    onSave={handleNewTemplateSave}
+                    onSave={handleNewTemplateSaveInternal}
                     username="current_user" // Replace with actual username
+                    reloadTemplates={() => setTemplates(getPromptTemplates())}
                 />
             )}
 
@@ -99,7 +110,7 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
                     templateId={currentTemplateId}
                     onClose={() => setShowEditTemplateForm(false)}
                     onSave={handleEditTemplateSave}
-                    username="current_user" // Replace with actual username
+                    username='current_user' // Replace with actual username
                 />
             )}
         </div>

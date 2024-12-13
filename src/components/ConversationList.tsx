@@ -1,10 +1,19 @@
 // src/components/ConversationList.tsx
+import { ChatConversation } from '../utils/localStorage';
+
+interface ConversationListProps {
+    conversations: ChatConversation[];
+    handleLoadConversation: (conversationId: string) => void;
+    handleEditConversationClick: (templateId: string) => void;
+    handleDeleteConversationClick: (templateId: string) => void;
+    handleNewConversationClick: () => void;
+}
 
 export const ConversationList: React.FC<ConversationListProps> = ({
     conversations,
     handleLoadConversation,
     handleEditConversationClick,
-    handleDeleteClick,
+    handleDeleteConversationClick,
     handleNewConversationClick
 }) => {
     return (
@@ -39,7 +48,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                         </button>
                         <button
                             className="mt-2 ml-2 p-2 bg-red-500 text-white rounded-full shadow-lg"
-                            onClick={() => handleDeleteClick(conversation.id)}
+                            onClick={() => handleDeleteConversationClick(conversation.id)}
                         >
                             🗑️
                         </button>

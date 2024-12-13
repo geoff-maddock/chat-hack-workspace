@@ -2,6 +2,7 @@
 
 export interface Settings {
     conversationId: string | null;
+    templateId: string | null;
     model: string;
     systemPrompt: string;
     username: string;
@@ -21,6 +22,7 @@ Files may be attached to the user's messages, in which case they will be convert
 If you have sent a message with a Markdown formatted image in it, go ahead and take credit for generating it, as another AI model was brought in to fulfill that request. Feel free to use that image's description to describe the image if relevant.`,
     username: 'system',
     conversationId: null,
+    templateId: null,
     totalRequests: 0 // Add this line
 };
 
