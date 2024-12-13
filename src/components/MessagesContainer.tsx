@@ -60,6 +60,7 @@ export const MessagesContainer: React.FC<MessagesContainerProps> = ({
                                 🗑️
                             </button>
                         }
+
                     </div>
                 ))}
 
@@ -77,6 +78,6 @@ export const MessagesContainer: React.FC<MessagesContainerProps> = ({
             <div className="border-t border-gray-200">
                 <ChatInput onSendMessage={handleSendMessage} disabled={isLoading} />
             </div>
-        </div>
+        </div >
     );
 };

@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 *.env*
+# But do not ignore .env.example
+!.env.example

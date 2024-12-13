@@ -55,14 +55,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ content, role, model, 
                     </div>
                 )}
             </div>
-            {isUser && (
-                <button
-                    className="absolute top-0 right-0 p-2 text-red-500"
-                    onClick={() => handleDeleteMessageClick(id)}
-                >
-                    🗑️
-                </button>
-            )}
         </div>
     );
 };

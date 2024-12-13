@@ -16,20 +16,28 @@ import { getSettings, saveSettings, Settings } from '../utils/settings';
 
 export const ChatInterface: React.FC = () => {
     const [messages, setMessages] = useState<Message[]>([]);
+    const [conversations, setConversations] = useState<ChatConversation[]>(getChatConversations());
+    const [templates, setTemplates] = useState<PromptTemplate[]>(getPromptTemplates());
+
     const [isLoading, setIsLoading] = useState(false);
     const [isUserScrolling, setIsUserScrolling] = useState(false); // Track user scrolling
     const [showDeletePopup, setShowDeletePopup] = useState(false);
+
     const [deleteMessageId, setDeleteMessageId] = useState<string | null>(null); // Track message to be deleted
     const [deleteConversationId, setDeleteConversationId] = useState<string | null>(null); // Track conversation to be deleted
+    const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null); // Track template to be deleted
+
     const [showClearPopup, setShowClearPopup] = useState(false);
     const [showSettingsForm, setShowSettingsForm] = useState(false);
+
     const [showEditConversationForm, setShowEditConversationForm] = useState(false);
     const [showNewConversationForm, setShowNewConversationForm] = useState(false);
-    const [showNewTemplateForm, setShowNewTemplateForm] = useState(false); // Track new template form visibility
+
     const [settings, setSettings] = useState<Settings>(getSettings());
-    const [conversations, setConversations] = useState<ChatConversation[]>(getChatConversations());
-    const [templates, setTemplates] = useState<PromptTemplate[]>(getPromptTemplates());
+
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(settings.conversationId);
+    const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(settings.templateId);
+
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -42,6 +50,11 @@ export const ChatInterface: React.FC = () => {
     useEffect(() => {
         scrollToBottom();
     }, [scrollToBottom, messagesEndRef, settings.conversationId, conversations.length]);
+
+    useEffect(() => {
+        setTemplates(getPromptTemplates());
+    }, []);
+
 
     useEffect(() => {
         const records = getChatRecords().filter(record => record.conversationId === settings.conversationId);
@@ -70,7 +83,7 @@ export const ChatInterface: React.FC = () => {
             saveSettings({ ...settings, conversationId: newConversation.id });
             setConversations([newConversation]);
         }
-    }, [settings.conversationId]);
+    }, []);
 
     const handleSendMessage = useCallback(async (userMessage: string) => {
         if (!userMessage.trim()) return;
@@ -204,8 +217,13 @@ export const ChatInterface: React.FC = () => {
         setShowDeletePopup(true);
     };
 
-    const handleDeleteClick = (conversationId: string) => {
+    const handleDeleteConversationClick = (conversationId: string) => {
         setDeleteConversationId(conversationId);
+        setShowDeletePopup(true);
+    };
+
+    const handleDeleteTemplateClick = (templateId: string) => {
+        setDeleteTemplateId(templateId);
         setShowDeletePopup(true);
     };
 
@@ -237,6 +255,12 @@ export const ChatInterface: React.FC = () => {
 
             setDeleteConversationId(null);
             setShowDeletePopup(false);
+        } else if (deleteTemplateId) {
+            deletePromptTemplate(deleteTemplateId);
+            const updatedTemplates = templates.filter(template => template.id !== deleteTemplateId);
+            setTemplates(updatedTemplates);
+            setDeleteTemplateId(null);
+            setShowDeletePopup(false);
         }
     };
 
@@ -246,27 +270,26 @@ export const ChatInterface: React.FC = () => {
         setShowDeletePopup(false);
     };
 
-    const handleAddTemplateClick = () => {
-        setShowNewTemplateForm(true);
+    const handleNewTemplateSave = (newTemplate: PromptTemplate) => {
+        setTemplates(prevTemplates => [...prevTemplates, newTemplate]);
     };
+
 
     const handleEditTemplateClick = (templateId: string) => {
-        // Implement edit template logic
+        setSelectedTemplateId(templateId);
+        setShowEditTemplateForm(true);
     };
 
-    const handleDeleteTemplateClick = (templateId: string) => {
-        deletePromptTemplate(templateId);
-        setTemplates(getPromptTemplates());
-    };
 
     return (
         <div className="flex h-[85vh] bg-white rounded-xl shadow-lg overflow-hidden">
             <PromptTemplateList
                 templates={templates}
-                handleLoadTemplate={handleSendMessage}
+                setTemplates={setTemplates}
+                handleNewTemplateSave={handleNewTemplateSave}
                 handleEditTemplateClick={handleEditTemplateClick}
                 handleDeleteTemplateClick={handleDeleteTemplateClick}
-                handleNewTemplateClick={handleAddTemplateClick}
+                getPromptTemplates={getPromptTemplates}
             />
 
             <MessagesContainer
@@ -286,7 +309,7 @@ export const ChatInterface: React.FC = () => {
                 conversations={conversations}
                 handleLoadConversation={handleLoadConversation}
                 handleEditConversationClick={handleEditConversationClick}
-                handleDeleteClick={handleDeleteClick}
+                handleDeleteConversationClick={handleDeleteConversationClick}
                 handleNewConversationClick={handleNewConversationClick}
             />
 
@@ -294,6 +317,7 @@ export const ChatInterface: React.FC = () => {
                 <DeleteConfirmationPopup
                     confirmDelete={confirmDelete}
                     cancelDelete={cancelDelete}
+                    deleteMessage={deleteMessageId ? 'Are you sure you want to delete this message?' : deleteConversationId ? 'Are you sure you want to delete this conversation and all related chats?' : 'Are you sure you want to delete this template?'}
                 />
             )}
 
